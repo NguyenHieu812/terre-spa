@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Calendar, Clock, Leaf, Scissors, Sparkles, User, Droplets, CheckCircle, AlertCircle } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
+import heroBg from "./assets/images/spa_hero_bg_1781666735594.jpg";
+import massageDetail from "./assets/images/spa_massage_detail_1781666753905.jpg";
 
 const services = [
   {
@@ -112,8 +114,14 @@ export default function App() {
       </nav>
 
       {/* Hero Section */}
-      <header className="pt-32 pb-20 px-4 md:pt-40 md:pb-32 bg-brand-100/50">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
+      <header className="relative pt-32 pb-20 px-4 md:pt-48 md:pb-40 flex items-center justify-center overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img src={heroBg} alt="Terre Spa - Không gian thư giãn" className="w-full h-full object-cover opacity-[0.25]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-brand-50/80 via-brand-50/50 to-brand-50" />
+        </div>
+        
+        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -142,6 +150,49 @@ export default function App() {
           </motion.div>
         </div>
       </header>
+
+      {/* Experience Section */}
+      <section className="py-20 px-4 bg-brand-50 relative">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="space-y-6 md:pr-10"
+          >
+            <h3 className="text-3xl md:text-4xl font-serif text-brand-900 leading-tight">
+              Tái tạo năng lượng <br className="hidden md:block"/>
+              <span className="italic text-brand-600">từ sâu bên trong</span>
+            </h3>
+            <p className="text-brand-700 leading-relaxed text-sm md:text-base">
+              Tại Terre Spa, mỗi liệu trình không chỉ là chăm sóc bên ngoài mà còn là chìa khóa mở ra sự bình yên trong tâm hồn. Với bàn tay điêu luyện của các chuyên viên, không gian tĩnh lặng và hương thơm thảo dược hòa quyện, bạn sẽ hoàn toàn được thả lỏng và phục hồi sinh lực.
+            </p>
+            <div className="flex gap-6 pt-4">
+              <div className="text-brand-800">
+                <span className="block text-3xl font-serif">100%</span>
+                <span className="text-xs uppercase tracking-wider text-brand-600">Thảo dược tự nhiên</span>
+              </div>
+              <div className="w-px bg-brand-200"></div>
+              <div className="text-brand-800">
+                <span className="block text-3xl font-serif">KTV</span>
+                <span className="text-xs uppercase tracking-wider text-brand-600">Giàu kinh nghiệm</span>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="relative"
+          >
+            <div className="aspect-[4/3] md:aspect-[3/2] overflow-hidden rounded-tr-[4rem] rounded-bl-[4rem] shadow-2xl relative z-10">
+              <img src={massageDetail} alt="Massage dưỡng sinh Terre Spa" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-brand-200 rounded-full -z-0 blur-2xl opacity-60"></div>
+            <div className="absolute -top-6 -left-6 w-24 h-24 bg-brand-300 rounded-full -z-0 blur-xl opacity-40"></div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* Services List */}
       <section id="services" className="py-20 px-4">
