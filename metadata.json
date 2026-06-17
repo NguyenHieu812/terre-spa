@@ -1,0 +1,6 @@
+{
+  "name": "Terre Spa",
+  "description": "Website đặt lịch hẹn Terre Spa với tích hợp Google Sheets",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
