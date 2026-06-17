@@ -1,14 +1,16 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { google } from "googleapis";
 import cors from "cors";
 
-// Provide instructions on how to set up the Google Sheet.
-// 1. Create a Google Service Account in GCP and get the email and private key.
-// 2. Create a Google Sheet and get the ID from the URL (https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit).
-// 3. Share the Google Sheet with the Service Account email.
-// 4. Create headers in the first row: "Name", "Phone", "Service", "Date", "Time", "Notes", "Status", "Created At"
+// Provide instructions on how to set up the Google Sheet via Apps Script
+// 1. Open your Google Sheet. Go to Extensions > Apps Script.
+// 2. Paste the provided Apps Script code (see UI) into the editor.
+// 3. Click Deploy > New deployment.
+// 4. Select "Web app" type.
+// 5. Execute as: "Me", Who has access: "Anyone".
+// 6. Click Deploy, authorize permissions, and copy the "Web app URL".
+// 7. Paste that URL into the GOOGLE_APPS_SCRIPT_URL environment variable.
 
 const app = express();
 const PORT = 3000;
@@ -16,57 +18,37 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// API route to accept a booking and write to Google Sheets
+// API route to accept a booking and write to Google Sheets via Apps Script Web App
 app.post("/api/book", async (req, res) => {
   const { name, phone, service, date, time, notes } = req.body;
+  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
 
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  // Replace \\n with actual newlines in case it's escaped in .env
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-
-  if (!email || !privateKey || !sheetId) {
+  if (!scriptUrl) {
     return res.status(500).json({
-      error: "Google Sheets connection not configured.",
-      details: "Please provide GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, and GOOGLE_SHEET_ID in environment variables.",
+      error: "Google Sheets Web App URL not configured.",
+      details: "Please provide GOOGLE_APPS_SCRIPT_URL in environment variables. You can find instructions in the application UI.",
     });
   }
 
   try {
-    const auth = new google.auth.JWT({
-      email,
-      key: privateKey,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
-
-    const sheets = google.sheets({ version: "v4", auth });
-    
-    const request = {
-      spreadsheetId: sheetId,
-      range: "Sheet1!A:H", // Adjust if your sheet name is different
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      resource: {
-        values: [
-          [
-            name,
-            phone,
-            service,
-            date,
-            time,
-            notes || "",
-            "Pending",
-            new Date().toISOString()
-          ],
-        ],
+    const response = await fetch(scriptUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    };
-
-    const response = await sheets.spreadsheets.values.append(request);
+      body: JSON.stringify({ name, phone, service, date, time, notes }),
+    });
     
-    res.json({ success: true, message: "Booking confirmed successfully!" });
+    // We expect the script to return a JSON success message
+    const data = await response.json().catch(() => ({}));
+    
+    if (data.success || response.ok) {
+      res.json({ success: true, message: "Booking confirmed successfully!" });
+    } else {
+      throw new Error(data.error || `Script returned status: ${response.status}`);
+    }
   } catch (error: any) {
-    console.error("Google Sheets API Error:", error);
+    console.error("Google Sheets Web App Error:", error);
     res.status(500).json({
       error: "Failed to save booking to Google Sheets.",
       details: error.message,
