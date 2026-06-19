@@ -11,6 +11,7 @@ import SanhChoSangTrong from "./assets/images/sanhchosangtrong.jpg";
 import GiauKinhNghiem from "./assets/images/giaukinhnghiem.jpg";
 import KhongGianHienDai from "./assets/images/khonggianhiendai.jpg";
 import ThuGian from "./assets/images/thugian.jpg";
+import LogoTerre from "./assets/images/logo-terre-removebg.png";
 const serviceCategories = [
   {
     id: "hair-recovery",
@@ -251,9 +252,11 @@ export default function App() {
       <nav className="fixed top-0 left-0 right-0 bg-brand-50/90 backdrop-blur-md z-50 border-b border-brand-200">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center font-serif text-xl italic font-bold">
-              T
-            </div>
+            <img
+              src={LogoTerre}
+              alt="Terre Spa Logo"
+              className="w-10 h-10 rounded-full object-cover"
+            />
             <div>
               <h1 className="text-xl font-serif font-semibold text-brand-900 tracking-wider">TERRE SPA</h1>
               <p className="text-[10px] uppercase tracking-widest text-brand-600">Chạm vào an yên</p>
