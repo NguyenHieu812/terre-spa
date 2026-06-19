@@ -7,7 +7,10 @@ import massageDetail from "./assets/images/spa_massage_detail_1781666753905.jpg"
 import hairWashImg from "./assets/images/spa_hair_wash_1781704187306.jpg";
 import facialCareImg from "./assets/images/spa_facial_care_1781704209004.jpg";
 import herbalCompressImg from "./assets/images/spa_herbal_compress_1781885390039.jpg";
-
+import SanhChoSangTrong from "./assets/images/sanhchosangtrong.jpg";
+import GiauKinhNghiem from "./assets/images/giaukinhnghiem.jpg";
+import KhongGianHienDai from "./assets/images/khonggianhiendai.jpg";
+import ThuGian from "./assets/images/thugian.jpg";
 const serviceCategories = [
   {
     id: "hair-recovery",
@@ -105,33 +108,33 @@ const customerReviews = [
 ];
 
 const experienceSlides = [
-  { 
-    img: massageDetail, 
-    title: "Thư Giãn Toàn Thân",
+  {
+    img: SanhChoSangTrong,
+    title: "Sảnh chờ sang trọng",
     desc: "Tại Terre Spa, mỗi liệu trình không chỉ là chăm sóc bên ngoài mà còn là chìa khóa mở ra sự bình yên trong tâm hồn. Không gian tĩnh lặng và hương thơm thảo dược hòa quyện giúp bạn thả lỏng hoàn toàn.",
-    tag1: "100%", tag1Desc: "Thảo dược tự nhiên", 
-    tag2: "KTV", tag2Desc: "Giàu kinh nghiệm" 
+    tag1: "Terre Spa", tag1Desc: "Phục vụ từ trái tim",
+    tag2: "Dịch vụ", tag2Desc: "Đa dạng, chuyên nghiệp"
   },
-  { 
-    img: hairWashImg, 
-    title: "Gội Đầu Dưỡng Sinh",
-    desc: "Đả thông kinh lạc, làm sạch sâu da đầu kết hợp massage cổ vai gáy. Trải nghiệm mang lại cảm giác vô cùng nhẹ nhàng, minh mẫn và gỡ bỏ mọi mệt mỏi tức thì.",
-    tag1: "Thư giãn", tag1Desc: "Đả thông kinh lạc", 
-    tag2: "Thảo dược", tag2Desc: "Độc quyền Terre" 
+  {
+    img: GiauKinhNghiem,
+    title: "Đội ngũ giàu kinh nghiệm",
+    desc: "Đội ngũ chuyên gia của Terre Spa được đào tạo bài bản, có kinh nghiệm lâu năm trong lĩnh vực chăm sóc sức khỏe và sắc đẹp. Họ luôn tận tâm, chuyên nghiệp và mang đến cho khách hàng những trải nghiệm tuyệt vời nhất.",
+    tag1: "Đào tạo", tag1Desc: "Chuyên sâu, bài bản",
+    tag2: "Kinh nghiệm", tag2Desc: "Nhiều năm trong nghề"
   },
-  { 
-    img: facialCareImg, 
-    title: "Chăm Sóc Da Mặt",
-    desc: "Liệu trình chăm sóc chuyên biệt cùng kỹ thuật nâng cơ tự nhiên giúp tái tạo và nuôi dưỡng làn da từ sâu bên trong, rạng rỡ ngay sau lần đầu trải nghiệm.",
-    tag1: "Chuyên sâu", tag1Desc: "Tái tạo làn da", 
-    tag2: "Nâng cơ", tag2Desc: "Kỹ thuật tự nhiên" 
+  {
+    img: KhongGianHienDai,
+    title: "Không gian hiện đại",
+    desc: "Terre Spa sở hữu không gian thiết kế hiện đại, tinh tế với sự kết hợp hài hòa giữa thiên nhiên và kiến trúc. Mỗi góc nhỏ đều được chăm chút tỉ mỉ để mang đến cảm giác thư giãn và đẳng cấp cho khách hàng.",
+    tag1: "Bố cục", tag1Desc: "Tinh tế, hài hòa",
+    tag2: "Cảm giác", tag2Desc: "Thư giãn, đẳng cấp"
   },
-  { 
-    img: herbalCompressImg, 
-    title: "Trị Liệu Thảo Dược",
-    desc: "Sự kết hợp hoàn hảo giữa nhiệt ấm và thảo mộc tự nhiên giúp khai thông huyệt đạo, phục hồi năng lượng, xoa dịu các bó cơ căng cứng do làm việc lâu.",
-    tag1: "Nhiệt", tag1Desc: "Xoa dịu cơ bắp", 
-    tag2: "Sức khỏe", tag2Desc: "Phục hồi sinh lực" 
+  {
+    img: ThuGian,
+    title: "Thư giãn toàn diện",
+    desc: "Massage tại Terre Spa không chỉ giúp thư giãn cơ thể mà còn là liệu pháp tinh thần, giúp giải tỏa căng thẳng và mang lại sự cân bằng cho cuộc sống hiện đại đầy áp lực.",
+    tag1: "Nhiệt", tag1Desc: "Xoa dịu cơ bắp",
+    tag2: "Sức khỏe", tag2Desc: "Phục hồi sinh lực"
   },
 ];
 
@@ -144,7 +147,7 @@ export default function App() {
     time: "09:00",
     notes: ""
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "idle" | "success" | "error", message: string }>({ type: "idle", message: "" });
   const [selectedService, setSelectedService] = useState<any>(null);
@@ -173,7 +176,7 @@ export default function App() {
       if (scrollRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
         const isEnd = scrollLeft + clientWidth >= scrollWidth - 10;
-        
+
         if (isEnd) {
           scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
@@ -224,17 +227,17 @@ export default function App() {
         body: JSON.stringify(formData),
       });
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.details || result.error || "Có lỗi xảy ra.");
       }
-      
+
       setStatus({ type: "success", message: "Cảm ơn bạn! Lịch hẹn đã được xác nhận thành công." });
       setFormData(prev => ({ ...prev, name: "", phone: "", notes: "" }));
     } catch (error: any) {
       console.error(error);
-      setStatus({ 
-        type: "error", 
+      setStatus({
+        type: "error",
         message: error.message || "Không thể kết nối lưu dữ liệu. Vui lòng thử lại sau."
       });
     } finally {
@@ -269,25 +272,25 @@ export default function App() {
           <img src={heroBg} alt="Terre Spa - Không gian thư giãn" className="w-full h-full object-cover opacity-[0.25]" />
           <div className="absolute inset-0 bg-gradient-to-b from-brand-50/80 via-brand-50/50 to-brand-50" />
         </div>
-        
+
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-6xl font-serif text-brand-950 font-medium leading-tight"
           >
             Đẹp bền từ <br className="md:hidden" /><span className="italic text-brand-600">tự nhiên</span>
           </motion.h2>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-brand-700 max-w-2xl mx-auto md:text-lg"
           >
-            Nơi bạn tìm thấy sự cân bằng hoàn hảo giữa thể chất và tinh thần. 
+            Nơi bạn tìm thấy sự cân bằng hoàn hảo giữa thể chất và tinh thần.
             Terre Spa mang đến các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp.
           </motion.p>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -303,7 +306,7 @@ export default function App() {
       {/* Experience Section */}
       <section className="py-20 px-4 bg-brand-50 relative">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -317,9 +320,9 @@ export default function App() {
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
-            
+
             <AnimatePresence mode="wait">
-              <motion.div 
+              <motion.div
                 key={currentSlideIndex}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -347,7 +350,7 @@ export default function App() {
               </motion.div>
             </AnimatePresence>
           </motion.div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -355,15 +358,15 @@ export default function App() {
           >
             <div className="aspect-[4/3] md:aspect-[3/2] overflow-hidden rounded-[2rem] shadow-2xl relative z-10 group">
               <AnimatePresence mode="wait">
-                <motion.img 
+                <motion.img
                   key={currentSlideIndex}
-                  src={experienceSlides[currentSlideIndex].img} 
-                  alt={experienceSlides[currentSlideIndex].title} 
+                  src={experienceSlides[currentSlideIndex].img}
+                  alt={experienceSlides[currentSlideIndex].title}
                   initial={{ opacity: 0, scale: 1.05 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.8 }}
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-cover"
                 />
               </AnimatePresence>
             </div>
@@ -380,10 +383,10 @@ export default function App() {
             <h3 className="text-3xl font-serif text-brand-900">Bảng giá Dịch vụ</h3>
             <div className="w-16 h-px bg-brand-400 mx-auto"></div>
           </div>
-          
+
           <div className="space-y-16">
             {serviceCategories.map((category, i) => (
-              <motion.div 
+              <motion.div
                 key={category.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -399,9 +402,9 @@ export default function App() {
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {category.services.map((svc) => (
-                    <div 
-                      key={svc.id} 
-                      onClick={() => setSelectedService({...svc, category: category.title, image: category.image})}
+                    <div
+                      key={svc.id}
+                      onClick={() => setSelectedService({ ...svc, category: category.title, image: category.image })}
                       className="bg-white p-6 hover:shadow-xl hover:shadow-brand-200/50 transition-all duration-300 border border-brand-100 flex flex-col justify-between group rounded-sm cursor-pointer"
                     >
                       <div>
@@ -444,19 +447,19 @@ export default function App() {
             </button>
           </div>
         </div>
-        
+
         {/* Horizontal Scroll Container */}
         <div className="max-w-6xl mx-auto px-4 relative">
           <button onClick={scrollLeftBtn} className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex md:hidden items-center justify-center bg-white shadow-md rounded-full text-brand-800 border border-brand-100">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          
-          <div 
+
+          <div
             ref={scrollRef}
             className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory hide-scrollbar group scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
           >
             {customerReviews.map((review, i) => (
-              <motion.div 
+              <motion.div
                 key={review.id}
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -495,7 +498,7 @@ export default function App() {
           <div className="md:col-span-2 space-y-6">
             <h3 className="text-3xl font-serif text-white">Đến với Terre.</h3>
             <p className="text-brand-200 text-sm leading-relaxed">
-              Vui lòng để lại thông tin đặt lịch, chúng tôi sẽ liên hệ để xác nhận trong thời gian sớm nhất. 
+              Vui lòng để lại thông tin đặt lịch, chúng tôi sẽ liên hệ để xác nhận trong thời gian sớm nhất.
               Bạn cũng có thể gọi trực tiếp qua hotline để được hỗ trợ nhanh chóng.
             </p>
             <div className="space-y-4 pt-4 border-t border-brand-800">
@@ -505,13 +508,13 @@ export default function App() {
               </div>
             </div>
           </div>
-          
+
           <div className="md:col-span-3 bg-white text-brand-950 p-6 md:p-8 rounded-sm">
             <form onSubmit={handleSubmit} className="space-y-6">
-              
+
               <AnimatePresence>
                 {status.message && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
@@ -526,7 +529,7 @@ export default function App() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-xs font-medium uppercase tracking-wider text-brand-700">Họ và tên *</label>
-                  <input 
+                  <input
                     required
                     id="name"
                     name="name"
@@ -538,7 +541,7 @@ export default function App() {
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="phone" className="text-xs font-medium uppercase tracking-wider text-brand-700">Số điện thoại *</label>
-                  <input 
+                  <input
                     required
                     id="phone"
                     name="phone"
@@ -553,7 +556,7 @@ export default function App() {
 
               <div className="space-y-2">
                 <label htmlFor="service" className="text-xs font-medium uppercase tracking-wider text-brand-700">Dịch vụ quan tâm</label>
-                <select 
+                <select
                   id="service"
                   name="service"
                   value={formData.service}
@@ -574,7 +577,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label htmlFor="date" className="text-xs font-medium uppercase tracking-wider text-brand-700">Ngày hẹn *</label>
-                  <input 
+                  <input
                     required
                     id="date"
                     name="date"
@@ -587,7 +590,7 @@ export default function App() {
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="time" className="text-xs font-medium uppercase tracking-wider text-brand-700">Giờ hẹn *</label>
-                  <select 
+                  <select
                     required
                     id="time"
                     name="time"
@@ -604,7 +607,7 @@ export default function App() {
 
               <div className="space-y-2">
                 <label htmlFor="notes" className="text-xs font-medium uppercase tracking-wider text-brand-700">Ghi chú thêm</label>
-                <textarea 
+                <textarea
                   id="notes"
                   name="notes"
                   value={formData.notes}
@@ -615,8 +618,8 @@ export default function App() {
                 ></textarea>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 className="w-full py-4 bg-brand-800 text-brand-50 hover:bg-brand-900 transition-colors font-medium tracking-wider text-sm disabled:opacity-70 flex items-center justify-center gap-2"
               >
@@ -634,36 +637,36 @@ export default function App() {
           <div className="space-y-6 text-center md:text-left">
             <div className="text-brand-500 text-3xl font-serif italic font-bold">Terre Spa</div>
             <p className="text-brand-400 text-sm italic">"Chạm vào an yên - Đẹp bền từ tự nhiên"</p>
-            
+
             <div className="pt-4 space-y-4">
               <div>
                 <p className="text-xs uppercase tracking-wider text-brand-700 mb-1">Địa chỉ</p>
-                <p className="text-brand-200 text-sm leading-relaxed">Số 2 ngõ 282/33 Đ. Kim Giang, Kim Văn,<br/> Định Công, TP. Hà Nội, Việt Nam.</p>
+                <p className="text-brand-200 text-sm leading-relaxed">Số 2 ngõ 282/33 Đ. Kim Giang, Kim Văn,<br /> Định Công, TP. Hà Nội, Việt Nam.</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wider text-brand-700 mb-1">Hotline</p>
                 <p className="text-brand-200 text-sm">0569087777</p>
               </div>
             </div>
-            
+
             <div className="pt-8 border-t border-brand-900/50">
               <p className="text-brand-700 text-xs">&copy; {new Date().getFullYear()} Terre Spa. All rights reserved.</p>
             </div>
           </div>
-          
+
           {/* Map */}
           <div className="h-64 md:h-full min-h-[300px] w-full bg-brand-900/50 rounded-sm overflow-hidden relative">
-            <iframe 
-               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3725.3937684003854!2d105.8214203!3d20.9768471!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ad3f8a928e27%3A0xbc72b41f64bf9636!2zVEVSUkUgU1BBLSBH4buZaSBk4bqndSBkxrDhu6FuZyBzaW5oLCBtYXNzYWdlIHZhaSBnw6F5LCBib2R5LCBDaMSDbSBzw7NjIGRhIG3hu6VuLSBuw6FtIGtow7RuZyB4w6JtIGzhuqVuLCB0cmnhu4d0IGzDtG5nLg!5e0!3m2!1svi!2s!4v1781707829329!5m2!1svi!2s" 
-               className="absolute inset-0 w-full h-full border-0 relative z-10"
-               allowFullScreen={true}
-               loading="lazy" 
-               referrerPolicy="no-referrer-when-downgrade"
-               title="Terre Spa Map"
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3725.3937684003854!2d105.8214203!3d20.9768471!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ad3f8a928e27%3A0xbc72b41f64bf9636!2zVEVSUkUgU1BBLSBH4buZaSBk4bqndSBkxrDhu6FuZyBzaW5oLCBtYXNzYWdlIHZhaSBnw6F5LCBib2R5LCBDaMSDbSBzw7NjIGRhIG3hu6VuLSBuw6FtIGtow7RuZyB4w6JtIGzhuqVuLCB0cmnhu4d0IGzDtG5nLg!5e0!3m2!1svi!2s!4v1781707829329!5m2!1svi!2s"
+              className="absolute inset-0 w-full h-full border-0 relative z-10"
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Terre Spa Map"
             ></iframe>
             {/* Fallback placeholder */}
             <div className="absolute inset-0 flex items-center justify-center p-6 text-center pointer-events-none text-brand-700 text-sm z-0">
-               Bản đồ đang tải...
+              Bản đồ đang tải...
             </div>
           </div>
         </div>
@@ -673,31 +676,31 @@ export default function App() {
       <AnimatePresence>
         {selectedService && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 outline-none">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-brand-950/60 backdrop-blur-sm cursor-pointer"
               onClick={() => setSelectedService(null)}
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-white rounded-md shadow-2xl relative z-10 max-w-2xl w-full flex flex-col md:flex-row overflow-hidden max-h-[90vh]"
             >
-              <button 
+              <button
                 onClick={() => setSelectedService(null)}
                 className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/50 text-brand-950 backdrop-blur-md rounded-full hover:bg-white transition-colors"
                 aria-label="Đóng"
               >
                 <X className="w-5 h-5" />
               </button>
-              
+
               <div className="md:w-2/5 aspect-video md:aspect-auto shrink-0 relative bg-brand-100">
                 <img src={selectedService.image} alt={selectedService.name} className="w-full h-full object-cover absolute inset-0" />
               </div>
-              
+
               <div className="p-6 md:p-8 flex flex-col flex-1 overflow-y-auto">
                 <p className="text-xs uppercase tracking-widest text-brand-500 mb-2">{selectedService.category}</p>
                 <h3 className="text-2xl font-serif text-brand-900 mb-4">{selectedService.name}</h3>
@@ -708,10 +711,10 @@ export default function App() {
                   <p>{selectedService.description}</p>
                 </div>
                 <div className="mt-auto pt-4">
-                  <a 
+                  <a
                     href="#book"
                     onClick={(e) => {
-                      setFormData(p => ({...p, service: selectedService.name}));
+                      setFormData(p => ({ ...p, service: selectedService.name }));
                       setSelectedService(null);
                     }}
                     className="w-full py-3.5 bg-brand-800 text-brand-50 text-center font-medium uppercase tracking-wider text-sm hover:bg-brand-900 focus:ring-2 ring-brand-400 ring-offset-1 transition-all block rounded-sm shadow-md"
