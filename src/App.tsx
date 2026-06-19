@@ -6,6 +6,7 @@ import heroBg from "./assets/images/spa_hero_bg_1781666735594.jpg";
 import massageDetail from "./assets/images/spa_massage_detail_1781666753905.jpg";
 import hairWashImg from "./assets/images/spa_hair_wash_1781704187306.jpg";
 import facialCareImg from "./assets/images/spa_facial_care_1781704209004.jpg";
+import herbalCompressImg from "./assets/images/spa_herbal_compress_1781885390039.jpg";
 
 const serviceCategories = [
   {
@@ -285,8 +286,20 @@ export default function App() {
             viewport={{ once: true }}
             className="relative"
           >
-            <div className="aspect-[4/3] md:aspect-[3/2] overflow-hidden rounded-tr-[4rem] rounded-bl-[4rem] shadow-2xl relative z-10">
-              <img src={massageDetail} alt="Massage dưỡng sinh Terre Spa" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+            <div className="grid grid-cols-2 gap-4 relative z-10">
+              {[
+                { img: massageDetail, desc: "Thư giãn toàn thân" },
+                { img: hairWashImg, desc: "Gội đầu dưỡng sinh" },
+                { img: facialCareImg, desc: "Chăm sóc da mặt" },
+                { img: herbalCompressImg, desc: "Chườm ấm thảo dược" },
+              ].map((item, idx) => (
+                <div key={idx} className="group relative aspect-square overflow-hidden rounded-sm shadow-md">
+                  <img src={item.img} alt={item.desc} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent flex items-end p-4">
+                    <p className="text-brand-50 text-sm font-medium">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-brand-200 rounded-full -z-0 blur-2xl opacity-60"></div>
             <div className="absolute -top-6 -left-6 w-24 h-24 bg-brand-300 rounded-full -z-0 blur-xl opacity-40"></div>
