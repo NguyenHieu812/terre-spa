@@ -104,6 +104,37 @@ const customerReviews = [
   }
 ];
 
+const experienceSlides = [
+  { 
+    img: massageDetail, 
+    title: "Thư Giãn Toàn Thân",
+    desc: "Tại Terre Spa, mỗi liệu trình không chỉ là chăm sóc bên ngoài mà còn là chìa khóa mở ra sự bình yên trong tâm hồn. Không gian tĩnh lặng và hương thơm thảo dược hòa quyện giúp bạn thả lỏng hoàn toàn.",
+    tag1: "100%", tag1Desc: "Thảo dược tự nhiên", 
+    tag2: "KTV", tag2Desc: "Giàu kinh nghiệm" 
+  },
+  { 
+    img: hairWashImg, 
+    title: "Gội Đầu Dưỡng Sinh",
+    desc: "Đả thông kinh lạc, làm sạch sâu da đầu kết hợp massage cổ vai gáy. Trải nghiệm mang lại cảm giác vô cùng nhẹ nhàng, minh mẫn và gỡ bỏ mọi mệt mỏi tức thì.",
+    tag1: "Thư giãn", tag1Desc: "Đả thông kinh lạc", 
+    tag2: "Thảo dược", tag2Desc: "Độc quyền Terre" 
+  },
+  { 
+    img: facialCareImg, 
+    title: "Chăm Sóc Da Mặt",
+    desc: "Liệu trình chăm sóc chuyên biệt cùng kỹ thuật nâng cơ tự nhiên giúp tái tạo và nuôi dưỡng làn da từ sâu bên trong, rạng rỡ ngay sau lần đầu trải nghiệm.",
+    tag1: "Chuyên sâu", tag1Desc: "Tái tạo làn da", 
+    tag2: "Nâng cơ", tag2Desc: "Kỹ thuật tự nhiên" 
+  },
+  { 
+    img: herbalCompressImg, 
+    title: "Trị Liệu Thảo Dược",
+    desc: "Sự kết hợp hoàn hảo giữa nhiệt ấm và thảo mộc tự nhiên giúp khai thông huyệt đạo, phục hồi năng lượng, xoa dịu các bó cơ căng cứng do làm việc lâu.",
+    tag1: "Nhiệt", tag1Desc: "Xoa dịu cơ bắp", 
+    tag2: "Sức khỏe", tag2Desc: "Phục hồi sinh lực" 
+  },
+];
+
 export default function App() {
   const [formData, setFormData] = useState({
     name: "",
@@ -117,6 +148,23 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "idle" | "success" | "error", message: string }>({ type: "idle", message: "" });
   const [selectedService, setSelectedService] = useState<any>(null);
+
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % experienceSlides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [currentSlideIndex]);
+
+  const prevExperienceSlide = () => {
+    setCurrentSlideIndex((prev) => (prev === 0 ? experienceSlides.length - 1 : prev - 1));
+  };
+
+  const nextExperienceSlide = () => {
+    setCurrentSlideIndex((prev) => (prev + 1) % experienceSlides.length);
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -261,24 +309,43 @@ export default function App() {
             viewport={{ once: true }}
             className="space-y-6 md:pr-10"
           >
-            <h3 className="text-3xl md:text-4xl font-serif text-brand-900 leading-tight">
-              Tái tạo năng lượng <br className="hidden md:block"/>
-              <span className="italic text-brand-600">từ sâu bên trong</span>
-            </h3>
-            <p className="text-brand-700 leading-relaxed text-sm md:text-base">
-              Tại Terre Spa, mỗi liệu trình không chỉ là chăm sóc bên ngoài mà còn là chìa khóa mở ra sự bình yên trong tâm hồn. Với bàn tay điêu luyện của các chuyên viên, không gian tĩnh lặng và hương thơm thảo dược hòa quyện, bạn sẽ hoàn toàn được thả lỏng và phục hồi sinh lực.
-            </p>
-            <div className="flex gap-6 pt-4">
-              <div className="text-brand-800">
-                <span className="block text-3xl font-serif">100%</span>
-                <span className="text-xs uppercase tracking-wider text-brand-600">Thảo dược tự nhiên</span>
-              </div>
-              <div className="w-px bg-brand-200"></div>
-              <div className="text-brand-800">
-                <span className="block text-3xl font-serif">KTV</span>
-                <span className="text-xs uppercase tracking-wider text-brand-600">Giàu kinh nghiệm</span>
-              </div>
+            <div className="flex gap-2 mb-6">
+              <button onClick={prevExperienceSlide} className="w-10 h-10 flex items-center justify-center rounded-full border border-brand-200 text-brand-700 hover:bg-white hover:text-brand-900 transition-colors shadow-sm bg-brand-50">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button onClick={nextExperienceSlide} className="w-10 h-10 flex items-center justify-center rounded-full border border-brand-200 text-brand-700 hover:bg-white hover:text-brand-900 transition-colors shadow-sm bg-brand-50">
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
+            
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={currentSlideIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-6"
+              >
+                <h3 className="text-3xl md:text-4xl font-serif text-brand-900 leading-tight">
+                  <span dangerouslySetInnerHTML={{ __html: experienceSlides[currentSlideIndex].title.replace(" ", " <br class='hidden md:block'/>") }} />
+                </h3>
+                <p className="text-brand-700 leading-relaxed text-sm md:text-base min-h-[80px]">
+                  {experienceSlides[currentSlideIndex].desc}
+                </p>
+                <div className="flex gap-6 pt-4">
+                  <div className="text-brand-800">
+                    <span className="block text-3xl font-serif">{experienceSlides[currentSlideIndex].tag1}</span>
+                    <span className="text-xs uppercase tracking-wider text-brand-600">{experienceSlides[currentSlideIndex].tag1Desc}</span>
+                  </div>
+                  <div className="w-px bg-brand-200"></div>
+                  <div className="text-brand-800">
+                    <span className="block text-3xl font-serif">{experienceSlides[currentSlideIndex].tag2}</span>
+                    <span className="text-xs uppercase tracking-wider text-brand-600">{experienceSlides[currentSlideIndex].tag2Desc}</span>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
@@ -286,20 +353,19 @@ export default function App() {
             viewport={{ once: true }}
             className="relative"
           >
-            <div className="grid grid-cols-2 gap-4 relative z-10">
-              {[
-                { img: massageDetail, desc: "Thư giãn toàn thân" },
-                { img: hairWashImg, desc: "Gội đầu dưỡng sinh" },
-                { img: facialCareImg, desc: "Chăm sóc da mặt" },
-                { img: herbalCompressImg, desc: "Chườm ấm thảo dược" },
-              ].map((item, idx) => (
-                <div key={idx} className="group relative aspect-square overflow-hidden rounded-sm shadow-md">
-                  <img src={item.img} alt={item.desc} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/20 to-transparent flex items-end p-4">
-                    <p className="text-brand-50 text-sm font-medium">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="aspect-[4/3] md:aspect-[3/2] overflow-hidden rounded-[2rem] shadow-2xl relative z-10 group">
+              <AnimatePresence mode="wait">
+                <motion.img 
+                  key={currentSlideIndex}
+                  src={experienceSlides[currentSlideIndex].img} 
+                  alt={experienceSlides[currentSlideIndex].title} 
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="w-full h-full object-cover" 
+                />
+              </AnimatePresence>
             </div>
             <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-brand-200 rounded-full -z-0 blur-2xl opacity-60"></div>
             <div className="absolute -top-6 -left-6 w-24 h-24 bg-brand-300 rounded-full -z-0 blur-xl opacity-40"></div>
