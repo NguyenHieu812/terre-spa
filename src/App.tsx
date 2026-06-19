@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Calendar, Clock, Leaf, Scissors, Sparkles, User, Droplets, CheckCircle, AlertCircle, X } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Calendar, Clock, Leaf, Scissors, Sparkles, User, Droplets, CheckCircle, AlertCircle, X, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 import heroBg from "./assets/images/spa_hero_bg_1781666735594.jpg";
@@ -60,6 +60,49 @@ const serviceCategories = [
   }
 ];
 
+const customerReviews = [
+  {
+    id: 1,
+    author: "Nguyễn Lê Hằng",
+    rating: 5,
+    date: "1 tháng trước",
+    content: "Spa làm rất chuyên nghiệp. Các bạn nhân viên nhiệt tình, nhẹ nhàng. Massage cổ vai gáy xong thấy người nhẹ rỗng luôn. Không gian thơm mùi thảo mộc rất thư giãn.",
+    avatar: "https://ui-avatars.com/api/?name=Nguyen+Le+Hang&background=f2e8e5&color=8c6454"
+  },
+  {
+    id: 2,
+    author: "Trần Minh Tùng",
+    rating: 5,
+    date: "3 tuần trước",
+    content: "Mình đã trải nghiệm dịch vụ gội đầu dưỡng sinh ở đây, rất tuyệt vời. Giá cả hợp lý so với chất lượng. Chắc chắn sẽ quay lại ủng hộ các bạn.",
+    avatar: "https://ui-avatars.com/api/?name=Tran+Minh+Tung&background=f2e8e5&color=8c6454"
+  },
+  {
+    id: 3,
+    author: "Bùi Thu Trà",
+    rating: 5,
+    date: "2 tháng trước",
+    content: "Dịch vụ chăm sóc da mụn rất tốt. Các bạn lấy nhân mụn kỹ mà không bị đỏ rát nhiều. Tư vấn cũng rất có tâm, không chèo kéo mua thêm gói.",
+    avatar: "https://ui-avatars.com/api/?name=Bui+Thu+Tra&background=f2e8e5&color=8c6454"
+  },
+  {
+    id: 4,
+    author: "Linh Doãn",
+    rating: 5,
+    date: "1 tuần trước",
+    content: "Không gian trang trí rất dễ thương, có nhạc thiền êm ái. Nước ngâm chân thảo dược thơm và ấm. Cực kỳ recommend trải nghiệm thư giãn cuối tuần nha mọi người.",
+    avatar: "https://ui-avatars.com/api/?name=Linh+Doan&background=f2e8e5&color=8c6454"
+  },
+  {
+    id: 5,
+    author: "Hoàng Anh",
+    rating: 5,
+    date: "2 tháng trước",
+    content: "Spa uy tín tại khu vực Kim Giang. Các liệu trình rất rõ ràng và nhân viên ngoan, làm đúng thời gian, không ăn bớt giờ của khách.",
+    avatar: "https://ui-avatars.com/api/?name=Hoang+Anh&background=f2e8e5&color=8c6454"
+  }
+];
+
 export default function App() {
   const [formData, setFormData] = useState({
     name: "",
@@ -73,6 +116,42 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "idle" | "success" | "error", message: string }>({ type: "idle", message: "" });
   const [selectedService, setSelectedService] = useState<any>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        const isEnd = scrollLeft + clientWidth >= scrollWidth - 10;
+        
+        if (isEnd) {
+          scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          const cardWidth = scrollRef.current.children[0]?.clientWidth || 300;
+          const gap = 24; // 1.5rem gap-6
+          scrollRef.current.scrollBy({ left: cardWidth + gap, behavior: 'smooth' });
+        }
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const scrollLeftBtn = () => {
+    if (scrollRef.current) {
+      const cardWidth = scrollRef.current.children[0]?.clientWidth || 300;
+      const gap = 24;
+      scrollRef.current.scrollBy({ left: -(cardWidth + gap), behavior: 'smooth' });
+    }
+  };
+
+  const scrollRightBtn = () => {
+    if (scrollRef.current) {
+      const cardWidth = scrollRef.current.children[0]?.clientWidth || 300;
+      const gap = 24;
+      scrollRef.current.scrollBy({ left: cardWidth + gap, behavior: 'smooth' });
+    }
+  };
 
   const availableTimes = [
     "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
@@ -262,6 +341,72 @@ export default function App() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Reviews Section */}
+      <section className="py-20 bg-white overflow-hidden border-y border-brand-100">
+        <div className="max-w-6xl mx-auto px-4 mb-12 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-4 border-b border-brand-200 pb-4">
+              <div className="p-3 bg-brand-100 text-brand-800 rounded-full">
+                <Star className="w-5 h-5 fill-current" />
+              </div>
+              <h4 className="text-2xl font-serif text-brand-900">Khách Hàng Nói Gì Về Chúng Tôi</h4>
+            </div>
+            <p className="mt-4 text-brand-600 text-sm">Đánh giá thực tế từ Google Maps</p>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
+            <button onClick={scrollLeftBtn} className="w-10 h-10 flex items-center justify-center rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors bg-white shadow-sm">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button onClick={scrollRightBtn} className="w-10 h-10 flex items-center justify-center rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors bg-white shadow-sm">
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Horizontal Scroll Container */}
+        <div className="max-w-6xl mx-auto px-4 relative">
+          <button onClick={scrollLeftBtn} className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex md:hidden items-center justify-center bg-white shadow-md rounded-full text-brand-800 border border-brand-100">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <div 
+            ref={scrollRef}
+            className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory hide-scrollbar group scroll-smooth -mx-4 px-4 md:mx-0 md:px-0"
+          >
+            {customerReviews.map((review, i) => (
+              <motion.div 
+                key={review.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="w-full md:w-[calc(33.333%-16px)] shrink-0 bg-brand-50 p-6 rounded-sm snap-start border border-brand-100 shadow-sm flex flex-col justify-between"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <img src={review.avatar} alt={review.author} className="w-12 h-12 rounded-full" />
+                  <div>
+                    <h5 className="font-medium text-brand-950 font-serif">{review.author}</h5>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex text-yellow-500">
+                        {[...Array(review.rating)].map((_, idx) => (
+                          <Star key={idx} className="w-3 h-3 fill-current" />
+                        ))}
+                      </div>
+                      <span className="text-xs text-brand-500">{review.date}</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-brand-700 leading-relaxed italic">"{review.content}"</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <button onClick={scrollRightBtn} className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex md:hidden items-center justify-center bg-white shadow-md rounded-full text-brand-800 border border-brand-100">
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </section>
 
