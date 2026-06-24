@@ -2,36 +2,14 @@ import React from "react";
 import { motion } from "motion/react";
 import { beforeAfterStories } from "../data/content";
 import { Footer } from "../components/Footer";
-import LogoTerre from "../assets/images/logo-terre-removebg.png";
 import { Quote, Phone, Calendar, Sparkles } from "lucide-react";
+import Navbar from "../components/Navbar";
 
 const FeedbackPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-brand-50 flex flex-col font-sans selection:bg-brand-200 text-brand-950">
-
-      {/* 1. FIXED PREMIUM HEADER */}
-      <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-brand-100 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3 group">
-            <div className="overflow-hidden rounded-full w-10 h-10 border border-brand-200">
-              <img src={LogoTerre} alt="Terre Spa Logo" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-            </div>
-            <div>
-              <h1 className="text-lg font-serif font-bold text-brand-900 tracking-widest">TERRE SPA</h1>
-              <p className="text-[9px] uppercase tracking-[0.2em] text-brand-500 font-medium">Chạm vào an yên</p>
-            </div>
-          </a>
-
-          <nav className="hidden md:flex items-center gap-8 text-xs uppercase font-medium tracking-widest text-brand-700">
-            <a href="/" className="hover:text-brand-950 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px after:bg-brand-900 hover:after:w-full after:transition-all">Trang chủ</a>
-            <a href="#gallery" className="text-brand-950 font-semibold relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-px after:bg-brand-900">Feedback</a>
-            <a href="#contact" className="hover:text-brand-950 transition-colors relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px after:bg-brand-900 hover:after:w-full after:transition-all">Liên hệ</a>
-            <a href="/#book" className="px-6 py-3 bg-brand-900 text-white font-medium hover:bg-brand-800 transition-all shadow-md shadow-brand-950/10 hover:shadow-lg active:scale-95 tracking-widest">
-              Đặt lịch ngay
-            </a>
-          </nav>
-        </div>
-      </header>
+      {/* Thanh điều hướng duy nhất, chuẩn hóa đa thiết bị */}
+      <Navbar />
 
       {/* MAIN CONTENT */}
       <main className="flex-1 pt-24 md:pt-32 pb-12">
@@ -82,17 +60,17 @@ const FeedbackPage: React.FC = () => {
                   transition={{ duration: 0.7, ease: "easeOut" }}
                   className="bg-white rounded-3xl overflow-hidden shadow-xl shadow-brand-950/5 border border-brand-100/70 grid md:grid-cols-12 gap-0 group hover:shadow-2xl hover:shadow-brand-950/10 transition-all duration-500"
                 >
-                  {/* Cột chứa Ảnh gộp (Chiếm 7/12 cột trên PC, tự động đổi vế trái/phải dựa trên Index) */}
+                  {/* Cột chứa Ảnh gộp */}
                   <div className={`md:col-span-7 overflow-hidden relative aspect-[16/10] md:aspect-auto min-h-[300px] ${isEven ? "md:order-1" : "md:order-2"}`}>
                     <img
-                      src={story.beAndAf} // Gọi trực tiếp thuộc tính chứa ảnh đã ghép của bạn ở đây
+                      src={story.beAndAf}
                       alt={`Kết quả liệu trình của ${story.name}`}
                       className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-1000 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-brand-950/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                   </div>
 
-                  {/* Cột chứa Nội dung (Chiếm 5/12 cột trên PC) */}
+                  {/* Cột chứa Nội dung */}
                   <div className={`md:col-span-5 p-8 md:p-10 flex flex-col justify-between bg-gradient-to-br from-white to-brand-50/20 ${isEven ? "md:order-2" : "md:order-1"}`}>
                     <div className="space-y-6">
                       <div className="flex items-start justify-between gap-4 border-b border-brand-100 pb-5">
@@ -109,7 +87,7 @@ const FeedbackPage: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Khối lời thoại cảm nhận từ khách hàng */}
+                      {/* Khối lời thoại cảm nhận */}
                       <div className="relative pt-2">
                         <Quote className="w-10 h-10 text-brand-200/50 absolute -top-3 -left-3 pointer-events-none" />
                         <p className="text-sm text-brand-800 leading-relaxed italic relative z-10 pl-5 border-l-2 border-brand-200 font-light">
@@ -157,7 +135,6 @@ const FeedbackPage: React.FC = () => {
           </div>
         </section>
       </main>
-
       <Footer />
     </div>
   );

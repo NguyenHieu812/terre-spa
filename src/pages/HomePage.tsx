@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Calendar, Clock, User, CheckCircle, AlertCircle, X, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 
-import LogoTerre from "../assets/images/logo-terre-removebg.png";
 import { experienceSlides, serviceCategories, customerReviews, beforeAfterStories } from "../data/content";
 import { ServiceCarousel } from "../components/ServiceCarousel";
 import { FeedbackCarousel } from "../components/FeedbackCarousel";
 import { Footer } from "../components/Footer";
+import Navbar from "../components/Navbar";
 
 const HomePage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -133,28 +132,8 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-50 flex flex-col font-sans">
-      <nav className="fixed top-0 left-0 right-0 bg-brand-50/90 backdrop-blur-md z-50 border-b border-brand-200">
-        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={LogoTerre} alt="Terre Spa Logo" className="w-10 h-10 rounded-full object-cover" />
-            <div>
-              <h1 className="text-xl font-serif font-semibold text-brand-900 tracking-wider">TERRE SPA</h1>
-              <p className="text-[10px] uppercase tracking-widest text-brand-600">Chạm vào an yên</p>
-            </div>
-          </div>
-          <div className="hidden md:flex items-center gap-6 text-sm uppercase tracking-wide text-brand-700">
-            <a href="#experience" className="hover:text-brand-900 transition-colors">Trải nghiệm</a>
-            <a href="#services" className="hover:text-brand-900 transition-colors">Dịch vụ</a>
-            <a href="#reviews" className="hover:text-brand-900 transition-colors">Đánh giá</a>
-            <Link to="/feedback" className="hover:text-brand-900 transition-colors">Feedback</Link>
-            <a href="#book" className="px-6 py-2 bg-brand-800 text-white font-medium hover:bg-brand-900 transition-colors rounded-none">
-              Đặt lịch ngay
-            </a>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-brand-50 flex flex-col overflow-x-hidden w-full text-brand-950">
+      <Navbar />
       <header className="relative pt-32 pb-20 px-4 md:pt-48 md:pb-40 flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img src={experienceSlides[currentSlideIndex].img} alt="Terre Spa - Không gian thư giãn" className="w-full h-full object-cover opacity-[0.25]" />
