@@ -32,7 +32,7 @@ const Navbar: React.FC = () => {
             <a href="#services" className="hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 hover:after:w-full after:bg-brand-600 after:transition-all">Dịch vụ</a>
             <a href="#reviews" className="hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 hover:after:w-full after:bg-brand-600 after:transition-all">Đánh giá</a>
             <Link to="/feedback" className="hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 hover:after:w-full after:bg-brand-600 after:transition-all">Feedback</Link>
-            <a href="#book" className="px-6 py-3 bg-brand-800 text-white hover:bg-brand-950 transition-all shadow-sm tracking-widest hover:-translate-y-0.5 active:translate-y-0 duration-300 rounded-sm">
+            <a href="https://www.terrespa.vn/#book" className="px-6 py-3 bg-brand-800 text-white hover:bg-brand-950 transition-all shadow-sm tracking-widest hover:-translate-y-0.5 active:translate-y-0 duration-300 rounded-sm">
               Đặt lịch ngay
             </a>
           </div>
