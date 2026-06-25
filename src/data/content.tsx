@@ -69,6 +69,15 @@ export const serviceCategories = [
       { id: "hr-back", name: "Triệt Lưng", price: "5,000,000", description: "Liệu trình triệt lưng tận gốc, bảo hành uy tín lâu dài, đánh bay những vết thâm sạm và mang lại tấm lưng thanh tân." },
     ],
   },
+  {
+    id: "other-services",
+    title: "Dịch Vụ Khác",
+    icon: <Droplets className="w-5 h-5" />,
+    image: heroBg,
+    services: [
+      { id: "other-1", name: "Dịch Vụ Khác 1", price: "Từ 149,000", description: "Liên hệ nhân viên hỗ trợ để được tư vấn thêm." },
+    ],
+  }
 ];
 
 export const customerReviews = [
@@ -188,7 +197,7 @@ export const beforeAfterStories = [
   },
   {
     id: "story-5",
-    name: "Chị Hoa",
+    name: "Chị Hồng",
     service: "Cấp ẩm chuyên sâu",
     duration: "Sau 2 liệu trình",
     beAndAf: BeforeAfter5,
@@ -196,7 +205,7 @@ export const beforeAfterStories = [
   },
   {
     id: "story-6",
-    name: "Chị Hoa",
+    name: "Chị Liễu",
     service: "Cấp ẩm chuyên sâu",
     duration: "Sau 2 liệu trình",
     beAndAf: BeforeAfter6,
@@ -204,7 +213,7 @@ export const beforeAfterStories = [
   },
   {
     id: "story-7",
-    name: "Chị Hoa",
+    name: "Chị Đào",
     service: "Cấp ẩm chuyên sâu",
     duration: "Sau 2 liệu trình",
     beAndAf: BeforeAfter7,
@@ -212,7 +221,7 @@ export const beforeAfterStories = [
   },
   {
     id: "story-8",
-    name: "Chị Hoa",
+    name: "Chị Nụ",
     service: "Cấp ẩm chuyên sâu",
     duration: "Sau 2 liệu trình",
     beAndAf: BeforeAfter8,

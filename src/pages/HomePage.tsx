@@ -75,6 +75,7 @@ const HomePage: React.FC = () => {
   };
 
   const availableTimes = [
+    "08:30",
     "09:00",
     "09:30",
     "10:00",
@@ -95,6 +96,11 @@ const HomePage: React.FC = () => {
     "18:30",
     "19:00",
     "19:30",
+    "20:00",
+    "20:30",
+    "21:00",
+    "21:30",
+    "22:00",
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
