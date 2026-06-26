@@ -79,7 +79,7 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
   }, [slidesPerView]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 cursor-pointer">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-brand-200 pb-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-brand-100 text-brand-800 rounded-full">{category.icon}</div>
