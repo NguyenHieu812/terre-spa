@@ -50,7 +50,7 @@ export const serviceCategories = [
     image: facialCareImg,
     services: [
       { id: "skin-basic", name: "Chăm sóc da cơ bản (60')", price: "259,000", description: "Làm sạch sâu, hút dầu mụn cám, massage mặt, đi tinh chất, đắp mặt nạ (mask) cấp ẩm. Lấy lại sự rạng rỡ tức thì." },
-      { id: "skin-acne", name: "Chăm da mụn chuyên sâu (90')", price: "539,000", description: "Làm sạch lỗ chân lông, lấy nhân mụn chuẩn y khoa, chiếu ánh sáng sinh học và peel mụn đặc trị." },
+      { id: "skin-acne", name: "Chăm da mụn chuyên sâu (90')", price: "539,000", description: "Làm sạch lỗ chân lông, lấy nhân mụn chuyên nghiệp, chiếu ánh sáng sinh học và peel mụn đặc trị." },
       { id: "skin-recover", name: "Phục hồi da yếu (75')", price: "719,000", description: "Dành riêng cho da nhạy cảm. Làm dịu da, điện di phục hồi, cooling lạnh bảo vệ và đắp mask chuyên sâu." },
       { id: "skin-terre", name: "Chăm sóc da Terre (90')", price: "799,000", description: "Quy trình chăm sóc chuyên biệt mang dấu ấn Terre Spa, sử dụng các sản phẩm cao cấp cùng kỹ thuật massage độc quyền." },
       { id: "skin-hydrafs", name: "Cấp ẩm chuyên sâu (75')", price: "1,499,000", description: "Cung cấp độ ẩm dồi dào qua điện di HA-B5, cooling lạnh và dưỡng chất cấp ẩm sâu vào tầng hạ bì của da." },
@@ -63,10 +63,10 @@ export const serviceCategories = [
     icon: <Droplets className="w-5 h-5" />,
     image: heroBg,
     services: [
-      { id: "hr-face", name: "Triệt mép / Nách", price: "Từ 1,000,000", description: "Công nghệ tiên tiến bảo hành trọn đời, an toàn, không đau rát, mang lại vùng dưới cánh tay mịn màng." },
-      { id: "hr-arm-leg", name: "Triệt Tay / Chân", price: "Từ 2,000,000", description: "Gói bảo hành trọn đời với công nghệ triệt lạnh không gây khô da hay viêm nang lông, vùng da rạng rỡ mịn màng." },
-      { id: "hr-bikini", name: "Triệt Bikini / Full Mặt", price: "2,500,000", description: "Bảo hành trọn đời, tiêu diệt hoàn toàn nang lông ở những vùng da nhạy cảm nhẹ nhàng và an toàn tuyệt đối." },
-      { id: "hr-back", name: "Triệt Lưng", price: "5,000,000", description: "Liệu trình triệt lưng tận gốc, bảo hành uy tín lâu dài, đánh bay những vết thâm sạm và mang lại tấm lưng thanh tân." },
+      { id: "hr-face", name: "Triệt mép / Nách", price: "Từ 1,000,000", description: "Công nghệ tiên tiến bảo hành lâu dài, an toàn, không đau rát, mang lại vùng dưới cánh tay mịn màng." },
+      { id: "hr-arm-leg", name: "Triệt Tay / Chân", price: "Từ 2,000,000", description: "Gói bảo hành uy tín với công nghệ triệt lạnh không gây khô da hay viêm nang lông, vùng da rạng rỡ mịn màng." },
+      { id: "hr-bikini", name: "Triệt Bikini / Full Mặt", price: "2,500,000", description: "Bảo hành lâu dài, hỗ trợ làm sạch nang lông ở những vùng da nhạy cảm nhẹ nhàng và nhẹ nhàng và an toàn." },
+      { id: "hr-back", name: "Triệt Lưng", price: "5,000,000", description: "Liệu trình triệt lưng chuyên sâu, bảo hành uy tín lâu dài, đánh bay những vết thâm sạm và mang lại tấm lưng thanh tân." },
     ],
   },
   {
