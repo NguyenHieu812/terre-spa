@@ -1,29 +1,29 @@
 <!doctype html>
 <html lang="en">
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terre Spa</title>
-  <meta name="keywords" content="terre spa, spa, chăm sóc sức khỏe, sắc đẹp, massage, thư giãn" />
-  <meta name="title" content="Terre Spa - Không gian thư giãn tuyệt vời" />
-  <meta name="description"
-    content="Terre Spa - Không gian thư giãn tuyệt vời với các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp." />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terre Spa</title>
+    <meta name="keywords" content="terre spa, spa, chăm sóc sức khỏe, sắc đẹp, massage, thư giãn" />
+    <meta name="title" content="Terre Spa - Không gian thư giãn tuyệt vời" />
+    <meta name="description"
+      content="Terre Spa - Không gian thư giãn tuyệt vời với các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp." />
 
-  <!-- Open Graph / Facebook / Zalo -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://terre-spa.vercel.app/" />
-  <meta property="og:title" content="Terre Spa - Không gian thư giãn tuyệt vời" />
-  <meta property="og:description"
-    content="Terre Spa - Không gian thư giãn tuyệt vời với các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp." />
-  <meta property="og:locale" content="vi_VN" />
-  <meta property="og:site_name" content="Terre Spa" />
+    <!-- Open Graph / Facebook / Zalo -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://terre-spa.vercel.app/" />
+    <meta property="og:title" content="Terre Spa - Không gian thư giãn tuyệt vời" />
+    <meta property="og:description"
+      content="Terre Spa - Không gian thư giãn tuyệt vời với các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp." />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:site_name" content="Terre Spa" />
 
-  <!-- Canonical Tag -->
-  <link rel="canonical" href="https://terre-spa.vercel.app/" />
-  <link rel="icon" type="image/svg+xml" href="/src/assets/images/favicon.svg" />
-  <!-- Meta Pixel Code -->
-  <script>
+    <!-- Canonical Tag -->
+    <link rel="canonical" href="https://terre-spa.vercel.app/" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/images/favicon.svg" />
+    <!-- Meta Pixel Code -->
+    <script>
     !function (f, b, e, v, n, t, s) {
       if (f.fbq) return; n = f.fbq = function () {
         n.callMethod ?
@@ -38,25 +38,39 @@
     fbq('init', '1446951207192320');
     fbq('track', 'PageView');
   </script>
-  <!-- End Meta Pixel Code -->
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18376097155"></script>
-  <script>
+    <!-- End Meta Pixel Code -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18376097155"></script>
+    <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'AW-18376097155');
   </script>
-  <!-- Event snippet for Người liên hệ conversion page -->
-  <script> gtag('event', 'conversion', { 'send_to': 'AW-18376097155/ocJMCJ-9gt8cEIP7s7pE' }); </script>
-</head>
+    <!-- Event snippet for Nhấp để gọi conversion page
+In your html page, add the snippet and call gtag_report_conversion when someone clicks on the chosen link or button. -->
+    <script>
+function gtag_report_conversion(url) {
+  var callback = function () {
+    if (typeof(url) != 'undefined') {
+      window.location = url;
+    }
+  };
+  gtag('event', 'conversion', {
+      'send_to': 'AW-18376097155/AYiACK6q8-AcEIP7s7pE',
+      'event_callback': callback
+  });
+  return false;
+}
+</script>
+  </head>
 
-<body>
-  <noscript><img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1446951207192320&ev=PageView&noscript=1" />
-  </noscript>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+  <body>
+    <noscript><img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=1446951207192320&ev=PageView&noscript=1" />
+    </noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 
 </html>
