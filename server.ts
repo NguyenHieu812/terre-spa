@@ -56,6 +56,39 @@ app.post("/api/book", async (req, res) => {
   }
 });
 
+// Cloudflare Proxy Sync Endpoint
+app.post("/api/cloudflare/proxy", async (req, res) => {
+  const { workerUrl, apiToken, action, data } = req.body;
+  if (!workerUrl) {
+    return res.status(400).json({ error: "Missing workerUrl parameter" });
+  }
+
+  const cleanUrl = workerUrl.trim().replace(/\/+$/, "");
+  const targetUrl = action === "health" ? `${cleanUrl}/api/health` : `${cleanUrl}/api/sync`;
+  const method = action === "fetch" || action === "health" ? "GET" : "POST";
+
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (apiToken) {
+      headers["Authorization"] = `Bearer ${apiToken.trim()}`;
+      headers["x-api-token"] = apiToken.trim();
+    }
+
+    const response = await fetch(targetUrl, {
+      method,
+      headers,
+      body: method === "POST" ? JSON.stringify(data || {}) : undefined,
+    });
+
+    const result = await response.json().catch(() => ({}));
+    res.status(response.status).json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to proxy request to Cloudflare Worker" });
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

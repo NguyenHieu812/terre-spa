@@ -1,6 +1,14 @@
 import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Scissors, Sparkles, Leaf, Droplets, Heart } from "lucide-react";
 import { motion } from "motion/react";
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Scissors: <Scissors className="w-5 h-5" />,
+  Sparkles: <Sparkles className="w-5 h-5" />,
+  Leaf: <Leaf className="w-5 h-5" />,
+  Droplets: <Droplets className="w-5 h-5" />,
+  Heart: <Heart className="w-5 h-5" />,
+};
 
 export type Service = {
   id: string;
@@ -12,7 +20,8 @@ export type Service = {
 export type ServiceCategory = {
   id: string;
   title: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
+  iconName?: string;
   image: string;
   services: Service[];
 };
@@ -82,7 +91,9 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
     <div className="space-y-6 cursor-pointer">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-brand-200 pb-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-brand-100 text-brand-800 rounded-full">{category.icon}</div>
+          <div className="p-3 bg-brand-100 text-brand-800 rounded-full">
+            {category.icon || (category.iconName ? ICON_MAP[category.iconName] : <Sparkles className="w-5 h-5" />)}
+          </div>
           <h4 className="text-2xl font-serif text-brand-900">{category.title}</h4>
         </div>
         <div className="flex items-center gap-3">
@@ -104,11 +115,11 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
       </div>
 
       <div className="relative">
-        <div ref={scrollRef} className="flex gap-6 overflow-hidden scroll-smooth">
+        <div ref={scrollRef} className="flex gap-6 overflow-x-auto hide-scrollbar snap-x snap-mandatory scroll-smooth pb-2">
           {category.services.map((service) => (
             <motion.div
               key={service.id}
-              className="relative shrink-0 bg-white p-6 border border-brand-100 flex flex-col justify-between group rounded-sm"
+              className="relative shrink-0 bg-white p-6 border border-brand-100 flex flex-col justify-between group rounded-2xl snap-start shadow-xs hover:shadow-md transition-shadow"
               style={{ flex: `0 0 ${cardWidth}` }}
               whileHover={{ translateY: -4 }}
               transition={{ type: "spring", stiffness: 200, damping: 20 }}

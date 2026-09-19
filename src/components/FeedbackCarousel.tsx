@@ -88,12 +88,12 @@ export const FeedbackCarousel: React.FC<FeedbackCarouselProps> = ({ stories }) =
       {/* Slider Container */}
       <div
         ref={scrollRef}
-        className="flex gap-8 overflow-hidden scroll-smooth pb-4"
+        className="flex gap-8 overflow-x-auto hide-scrollbar snap-x snap-mandatory scroll-smooth pb-4"
       >
         {stories.map((story) => (
           <motion.div
             key={story.id}
-            className="shrink-0 bg-white rounded-3xl overflow-hidden shadow-xl shadow-brand-950/5 border border-brand-100/60 flex flex-col justify-between hover:shadow-2xl hover:shadow-brand-950/10 hover:-translate-y-1 transition-all duration-300 group"
+            className="shrink-0 bg-white rounded-3xl overflow-hidden shadow-xl shadow-brand-950/5 border border-brand-100/60 flex flex-col justify-between hover:shadow-2xl hover:shadow-brand-950/10 hover:-translate-y-1 transition-all duration-300 group snap-start"
             style={{ flex: `0 0 ${cardWidth}` }}
             initial={{ opacity: 0.8, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}

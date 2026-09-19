@@ -1,15 +1,27 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Calendar, Clock, User, CheckCircle, AlertCircle, X, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Clock, CheckCircle, AlertCircle, X, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 
-import { experienceSlides, serviceCategories, customerReviews, beforeAfterStories } from "../data/content";
+import { experienceSlides, beforeAfterStories } from "../data/content";
+import { getStoredServices, getStoredReviews } from "../data/store";
+import { ServiceCategory, CustomerReview } from "../types";
 import { ServiceCarousel } from "../components/ServiceCarousel";
 import { FeedbackCarousel } from "../components/FeedbackCarousel";
 import { Footer } from "../components/Footer";
 import Navbar from "../components/Navbar";
+import { usePageSEO } from "../hooks/usePageSEO";
 
 const HomePage: React.FC = () => {
+  usePageSEO({
+    title: "Terre Spa - Gội Đầu Dưỡng Sinh, Massage Trị Liệu & Chăm Sóc Da Hà Nội",
+    description: "Terre Spa mang đến không gian an yên và các liệu pháp gội đầu dưỡng sinh Đông Y, massage trị liệu cổ vai gáy, chăm sóc & trẻ hóa da từ thảo dược thiên nhiên tại Kim Giang, Hoàng Mai, Hà Nội.",
+    keywords: "terre spa, gội đầu dưỡng sinh, massage trị liệu, chăm sóc da mụn, trị liệu cổ vai gáy, spa hoàng mai, spa hà nội",
+    canonicalUrl: "https://terre-spa.vercel.app/",
+  });
+
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>(() => getStoredServices());
+  const [reviews, setReviews] = useState<CustomerReview[]>(() => getStoredReviews());
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -24,6 +36,11 @@ const HomePage: React.FC = () => {
   const [selectedService, setSelectedService] = useState<any>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setServiceCategories(getStoredServices());
+    setReviews(getStoredReviews());
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -147,10 +164,10 @@ const HomePage: React.FC = () => {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
-          <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-serif text-brand-950 font-medium leading-tight">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-serif text-brand-950 font-medium leading-tight">
             Đẹp bền từ <br className="md:hidden" />
             <span className="italic text-brand-600">tự nhiên</span>
-          </motion.h2>
+          </motion.h1>
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-brand-700 max-w-2xl mx-auto md:text-lg">
             Nơi bạn tìm thấy sự cân bằng hoàn hảo giữa thể chất và tinh thần. Terre Spa mang đến các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp.
           </motion.p>
@@ -248,23 +265,41 @@ const HomePage: React.FC = () => {
 
         <div className="max-w-6xl mx-auto px-4 relative">
           <div ref={scrollRef} className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory hide-scrollbar group scroll-smooth -mx-4 px-4 md:mx-0 md:px-0">
-            {customerReviews.map((review, i) => (
-              <motion.div key={review.id} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="w-full md:w-[calc(33.333%-16px)] shrink-0 bg-brand-50 p-6 rounded-sm snap-start border border-brand-100 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center gap-4 mb-4">
-                  <img src={review.avatar} alt={review.author} className="w-12 h-12 rounded-full" />
-                  <div>
-                    <h5 className="font-medium text-brand-950 font-serif">{review.author}</h5>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex text-yellow-500">
-                        {[...Array(review.rating)].map((_, idx) => (
-                          <Star key={idx} className="w-3 h-3 fill-current" />
-                        ))}
+            {reviews.map((review, i) => (
+              <motion.div key={review.id} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="w-full md:w-[calc(33.333%-16px)] shrink-0 bg-brand-50 p-6 rounded-2xl snap-start border border-brand-100 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div>
+                  <div className="flex items-center gap-3.5 mb-3.5">
+                    <img
+                      src={
+                        review.avatar ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          review.author
+                        )}&background=f2e8e5&color=8c6454`
+                      }
+                      alt={review.author}
+                      className="w-12 h-12 rounded-full object-cover border border-brand-200"
+                    />
+                    <div>
+                      <h5 className="font-semibold text-brand-950 font-serif text-sm">{review.author}</h5>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex text-amber-500">
+                          {[...Array(review.rating)].map((_, idx) => (
+                            <Star key={idx} className="w-3 h-3 fill-current" />
+                          ))}
+                        </div>
+                        <span className="text-[11px] text-brand-500">{review.date}</span>
                       </div>
-                      <span className="text-xs text-brand-500">{review.date}</span>
                     </div>
                   </div>
+
+                  {review.serviceUsed && (
+                    <div className="mb-3 inline-block px-2.5 py-0.5 bg-brand-100/80 text-brand-800 text-[10px] font-medium rounded-full">
+                      {review.serviceUsed}
+                    </div>
+                  )}
+
+                  <p className="text-xs md:text-sm text-brand-700 leading-relaxed italic">"{review.content}"</p>
                 </div>
-                <p className="text-sm text-brand-700 leading-relaxed italic">"{review.content}"</p>
               </motion.div>
             ))}
           </div>
@@ -338,14 +373,14 @@ const HomePage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2">
                   <label htmlFor="date" className="text-xs font-medium uppercase tracking-wider text-brand-700">Ngày hẹn *</label>
-                  <input required id="date" name="date" type="date" min={format(new Date(), "yyyy-MM-dd")} value={formData.date} onChange={handleInputChange} className="w-full bg-brand-50 border border-brand-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" />
+                  <input required id="date" name="date" type="date" min={format(new Date(), "yyyy-MM-dd")} value={formData.date} onChange={handleInputChange} className="w-full bg-brand-50 border border-brand-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all rounded-sm" />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="time" className="text-xs font-medium uppercase tracking-wider text-brand-700">Giờ hẹn *</label>
-                  <select required id="time" name="time" value={formData.time} onChange={handleInputChange} className="w-full bg-brand-50 border border-brand-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+                  <select required id="time" name="time" value={formData.time} onChange={handleInputChange} className="w-full bg-brand-50 border border-brand-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all rounded-sm">
                     {availableTimes.map((t) => (
                       <option key={t} value={t}>
                         {t}

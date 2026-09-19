@@ -1,0 +1,15 @@
+name = "terre-spa-api"
+main = "cloudflare/worker.js"
+compatibility_date = "2024-09-23"
+
+# KV Namespace binding for storing Posts & Products
+[[kv_namespaces]]
+binding = "TERRE_KV"
+id = "439385b5e0c0472a860afe66a808e14d" # Replace with your KV ID or wrangler will create it automatically
+
+# Cloudflare D1 SQL Relational Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "terre-spa-db"
+database_id = "91515988-1f0f-4aab-b35e-0b8bfa7480b4"
+

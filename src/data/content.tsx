@@ -1,11 +1,3 @@
-import React from "react";
-import { Droplets, Leaf, Scissors, Sparkles } from "lucide-react";
-
-import heroBg from "../assets/images/spa_hero_bg_1781666735594.jpg";
-import massageDetail from "../assets/images/spa_massage_detail_1781666753905.jpg";
-import hairWashImg from "../assets/images/spa_hair_wash_1781704187306.jpg";
-import facialCareImg from "../assets/images/spa_facial_care_1781704209004.jpg";
-import herbalCompressImg from "../assets/images/spa_herbal_compress_1781885390039.jpg";
 import SanhChoSangTrong from "../assets/images/sanhchosangtrong.jpg";
 import GiauKinhNghiem from "../assets/images/giaukinhnghiem.jpg";
 import KhongGianHienDai from "../assets/images/khonggianhiendai.jpg";
@@ -18,108 +10,55 @@ import BeforeAfter5 from "../assets/images/BA-5.jpg";
 import BeforeAfter6 from "../assets/images/BA-6.jpg";
 import BeforeAfter7 from "../assets/images/BA-7.jpg";
 import BeforeAfter8 from "../assets/images/BA-8.jpg";
-export const serviceCategories = [
-  {
-    id: "hair-recovery",
-    title: "Gội Đầu & Dưỡng Sinh",
-    icon: <Scissors className="w-5 h-5" />,
-    image: hairWashImg,
-    services: [
-      { id: "hair-45", name: "Gội Đầu Dưỡng Sinh (45 phút)", price: "149,000", description: "Massage đầu mặt, cổ vai gáy, ủ tóc, đắp mặt nạ, xông thảo dược. Quy trình gội dưỡng sinh thư giãn giúp giải tỏa căng thẳng và nuôi dưỡng mầm tóc khỏe." },
-      { id: "hair-60", name: "Gội Đầu Dưỡng Sinh (60 phút)", price: "199,000", description: "Massage đầu mặt, cổ vai gáy, ủ tóc, đắp mặt nạ, xông thảo dược với thời gian dài hơn để bạn tận hưởng trọn vẹn từng khoảnh khắc an yên." },
-      { id: "hair-75", name: "Gội Đầu Dưỡng Sinh (75 phút)", price: "299,000", description: "Gội dưỡng sinh kéo dài, kết hợp các động tác ấn huyệt đầu cổ vai gáy sâu, giúp giảm thiểu mệt mỏi hiệu quả nhất." },
-      { id: "recovery-90", name: "Dưỡng Sinh Phục Hồi (90 phút)", price: "799,000", description: "Massage toàn thân, chườm bụng, gội đầu dưỡng sinh. Sự kết hợp hoàn hảo giữa gội đầu và chăm sóc body, đem lại sức sống mới cho cơ thể." },
-    ],
-  },
-  {
-    id: "massage",
-    title: "Massage Thư Giãn",
-    icon: <Sparkles className="w-5 h-5" />,
-    image: massageDetail,
-    services: [
-      { id: "neck-45", name: "Massage Vai Gáy (45 phút)", price: "169,000", description: "Thư giãn, đắp & chườm ấm thảo dược, tán phong thải độc vùng đầu cổ vai gáy. Phương pháp trị liệu thiên nhiên an toàn." },
-      { id: "neck-60", name: "Massage Vai Gáy (60 phút)", price: "299,000", description: "Liệu trình thư giãn kéo dài hơn cho vùng vai gáy, giúp xua tan sự ê nhức từ làm việc văn phòng, đắp & chườm ấm thảo dược." },
-      { id: "neck-90", name: "Massage Vai Gáy (90 phút)", price: "399,000", description: "Gói trị liệu vai gáy chuyên sâu, giúp giải phóng hoàn toàn ách tắc và đau nhức, kết hợp với các tinh chất thảo dược." },
-      { id: "body-120", name: "Body & Dưỡng Sinh (120 phút)", price: "699,000", description: "Massage body tinh dầu, massage vòng lưng với đá nóng, kết thúc với chườm ấm thư giãn toàn diện." },
-    ],
-  },
-  {
-    id: "skincare",
-    title: "Chăm Sóc & Trẻ Hóa Da",
-    icon: <Leaf className="w-5 h-5" />,
-    image: facialCareImg,
-    services: [
-      { id: "skin-basic", name: "Chăm sóc da cơ bản (60')", price: "259,000", description: "Làm sạch sâu, hút dầu mụn cám, massage mặt, đi tinh chất, đắp mặt nạ (mask) cấp ẩm. Lấy lại sự rạng rỡ tức thì." },
-      { id: "skin-acne", name: "Chăm da mụn chuyên sâu (90')", price: "539,000", description: "Làm sạch lỗ chân lông, lấy nhân mụn chuyên nghiệp, chiếu ánh sáng sinh học và peel mụn đặc trị." },
-      { id: "skin-recover", name: "Phục hồi da yếu (75')", price: "719,000", description: "Dành riêng cho da nhạy cảm. Làm dịu da, điện di phục hồi, cooling lạnh bảo vệ và đắp mask chuyên sâu." },
-      { id: "skin-terre", name: "Chăm sóc da Terre (90')", price: "799,000", description: "Quy trình chăm sóc chuyên biệt mang dấu ấn Terre Spa, sử dụng các sản phẩm cao cấp cùng kỹ thuật massage độc quyền." },
-      { id: "skin-hydrafs", name: "Cấp ẩm chuyên sâu (75')", price: "1,499,000", description: "Cung cấp độ ẩm dồi dào qua điện di HA-B5, cooling lạnh và dưỡng chất cấp ẩm sâu vào tầng hạ bì của da." },
-      { id: "skin-lift", name: "Nâng cơ trẻ hóa Terre (90')", price: "2,690,000", description: "Dịch vụ VIP chống lão hóa. Ion nâng cơ, điện di collagen, mask phục hồi giúp làn da căng bóng và thanh xuân trở lại." },
-    ],
-  },
-  {
-    id: "hair-removal",
-    title: "Triệt Lông (Gói Bảo Hành)",
-    icon: <Droplets className="w-5 h-5" />,
-    image: heroBg,
-    services: [
-      { id: "hr-face", name: "Triệt mép / Nách", price: "Từ 1,000,000", description: "Công nghệ tiên tiến bảo hành lâu dài, an toàn, không đau rát, mang lại vùng dưới cánh tay mịn màng." },
-      { id: "hr-arm-leg", name: "Triệt Tay / Chân", price: "Từ 2,000,000", description: "Gói bảo hành uy tín với công nghệ triệt lạnh không gây khô da hay viêm nang lông, vùng da rạng rỡ mịn màng." },
-      { id: "hr-bikini", name: "Triệt Bikini / Full Mặt", price: "2,500,000", description: "Bảo hành lâu dài, hỗ trợ làm sạch nang lông ở những vùng da nhạy cảm nhẹ nhàng và nhẹ nhàng và an toàn." },
-      { id: "hr-back", name: "Triệt Lưng", price: "5,000,000", description: "Liệu trình triệt lưng chuyên sâu, bảo hành uy tín lâu dài, đánh bay những vết thâm sạm và mang lại tấm lưng thanh tân." },
-    ],
-  },
-  {
-    id: "other-services",
-    title: "Dịch Vụ Khác",
-    icon: <Droplets className="w-5 h-5" />,
-    image: heroBg,
-    services: [
-      { id: "other-1", name: "Dịch Vụ Khác 1", price: "Từ 149,000", description: "Liên hệ nhân viên hỗ trợ để được tư vấn thêm." },
-    ],
-  }
-];
 
 export const customerReviews = [
   {
     id: 1,
     author: "Nguyễn Lê Hằng",
     rating: 5,
-    date: "1 tháng trước",
-    content: "Spa làm rất chuyên nghiệp. Các bạn nhân viên nhiệt tình, nhẹ nhàng. Massage cổ vai gáy xong thấy người nhẹ rỗng luôn. Không gian thơm mùi thảo mộc rất thư giãn.",
+    date: "1 tuần trước",
+    content: "Mình làm văn phòng ngồi máy tính nhiều nên vai gáy cứng đơ. Đến Terre trải nghiệm gói Massage Vai Gáy 60 phút có đắp và chườm ấm thảo dược, bạn kỹ thuật viên ấn huyệt cực kỳ đúng điểm tắc. Làm xong cảm giác nhẹ bẫng cả người, tối về ngủ ngon một mạch.",
     avatar: "https://ui-avatars.com/api/?name=Nguyen+Le+Hang&background=f2e8e5&color=8c6454",
   },
   {
     id: 2,
     author: "Trần Minh Tùng",
     rating: 5,
-    date: "3 tuần trước",
-    content: "Mình đã trải nghiệm dịch vụ gội đầu dưỡng sinh ở đây, rất tuyệt vời. Giá cả hợp lý so với chất lượng. Chắc chắn sẽ quay lại ủng hộ các bạn.",
+    date: "2 tuần trước",
+    content: "Rất ấn tượng với gói Dưỡng Sinh Phục Hồi 90 phút. Kết hợp trọn vẹn từ massage body tinh dầu, chườm ấm bụng đến gội đầu thảo dược xông hơi. Không gian yên tĩnh, mùi thảo mộc dễ chịu, nhân viên phục vụ tận tâm không chèo kéo.",
     avatar: "https://ui-avatars.com/api/?name=Tran+Minh+Tung&background=f2e8e5&color=8c6454",
   },
   {
     id: 3,
     author: "Bùi Thu Trà",
     rating: 5,
-    date: "2 tháng trước",
-    content: "Dịch vụ chăm sóc da mụn rất tốt. Các bạn lấy nhân mụn kỹ mà không bị đỏ rát nhiều. Tư vấn cũng rất có tâm, không chèo kéo mua thêm gói.",
+    date: "3 tuần trước",
+    content: "Gói chăm da mụn chuyên sâu làm rất kỹ. Kỹ thuật viên lấy nhân mụn êm tay, không làm trầy xước hay sưng đỏ mặt. Các bước chiếu ánh sáng sinh học và đắp mặt nạ làm dịu rất hiệu quả, sau 3 buổi da mình sạch mụn ẩn rõ rệt.",
     avatar: "https://ui-avatars.com/api/?name=Bui+Thu+Tra&background=f2e8e5&color=8c6454",
   },
   {
     id: 4,
     author: "Linh Doãn",
     rating: 5,
-    date: "1 tuần trước",
-    content: "Không gian trang trí rất dễ thương, có nhạc thiền êm ái. Nước ngâm chân thảo dược thơm và ấm. Cực kỳ recommend trải nghiệm thư giãn cuối tuần nha mọi người.",
+    date: "1 tháng trước",
+    content: "Gội đầu dưỡng sinh ở đây đúng chuẩn thảo mộc truyền thống, nấu từ bồ kết, sả chanh thơm tự nhiên chứ không dùng dầu gội hóa chất. Vừa được gội sạch sâu vừa được massage bấm huyệt đầu cổ vai gáy siêu thư giãn.",
     avatar: "https://ui-avatars.com/api/?name=Linh+Doan&background=f2e8e5&color=8c6454",
   },
   {
     id: 5,
     author: "Hoàng Anh",
     rating: 5,
-    date: "2 tháng trước",
-    content: "Spa uy tín tại khu vực Kim Giang. Các liệu trình rất rõ ràng và nhân viên ngoan, làm đúng thời gian, không ăn bớt giờ của khách.",
+    date: "1 tháng trước",
+    content: "Đưa mẹ đến làm gói Nâng cơ trẻ hóa Terre và Cấp ẩm chuyên sâu, mẹ khen nức nở. Da căng bóng, mịn màng và rãnh cười mờ hẳn. Spa làm đúng thời gian cam kết, quy trình bài bản và phòng ốc sạch sẽ tinh tế.",
     avatar: "https://ui-avatars.com/api/?name=Hoang+Anh&background=f2e8e5&color=8c6454",
+  },
+  {
+    id: 6,
+    author: "Đặng Thùy Dương",
+    rating: 5,
+    date: "2 tháng trước",
+    content: "Mình mua gói Triệt lông bảo hành tại Terre. Đầu máy triệt lạnh mát rượi, không hề bị châm chích hay bỏng rát da. Sau 3 buổi lông tơ mọc lại cực kỳ mảnh và thưa, vùng da dưới cánh tay sáng mịn hơn trông thấy.",
+    avatar: "https://ui-avatars.com/api/?name=Dang+Thuy+Duong&background=f2e8e5&color=8c6454",
   },
 ];
 
@@ -169,7 +108,7 @@ export const beforeAfterStories = [
     service: "Chăm da mụn chuyên sâu",
     duration: "Sau 4 buổi",
     beAndAf: BeforeAfter1,
-    notes: "Tình trạng viêm đỏ giảm rõ rệt, lỗ chân lông se khít, da sáng và đều màu hơn.",
+    notes: "Tình trạng mụn viêm đỏ gom cồi nhanh chóng, lỗ chân lông thông thoáng và vết thâm mờ hẳn. Kỹ thuật viên lấy nhân mụn rất êm, không sưng đỏ.",
   },
   {
     id: "story-2",
@@ -177,55 +116,55 @@ export const beforeAfterStories = [
     service: "Phục hồi da yếu",
     duration: "Sau 3 tuần",
     beAndAf: BeforeAfter2,
-    notes: "Độ ẩm cải thiện, da đều màu, không còn bong tróc và ửng đỏ."
+    notes: "Làn da sau đợt treatment bị mỏng đỏ và bong tróc đã hồi phục hoàn toàn. Da khỏe lên rõ rệt, ngậm nước căng mướt và không còn kích ứng khi ra ngoài.",
   },
   {
     id: "story-3",
-    name: "Anh Bảo",
+    name: "Anh Quốc Bảo",
     service: "Nâng cơ trẻ hóa Terre",
     duration: "Sau 6 tuần",
     beAndAf: BeforeAfter3,
-    notes: "Da nâng cơ thấy rõ, đường nét gương mặt thon gọn, sắc tố đồng đều."
+    notes: "Rãnh cười sâu và vùng cơ má chảy xệ được nâng đỡ săn chắc, đường viền hàm thon gọn. Da sáng khỏe và trẻ trung hơn thấy rõ.",
   },
   {
     id: "story-4",
-    name: "Chị Hoa",
-    service: "Cấp ẩm chuyên sâu",
+    name: "Chị Phương Hoa",
+    service: "Cấp ẩm chuyên sâu HA-B5",
     duration: "Sau 2 liệu trình",
     beAndAf: BeforeAfter4,
-    notes: "Làn da căng bóng, nếp nhăn nhỏ mờ hẳn, bề mặt da mềm và đàn hồi tốt."
+    notes: "Nền da khô ráp thiếu nước trở nên căng bóng, mềm mịn. Khi trang điểm nền tệp vào da mượt mà, nếp nhăn li ti quanh mắt mờ đi trông thấy.",
   },
   {
     id: "story-5",
-    name: "Chị Hồng",
-    service: "Cấp ẩm chuyên sâu",
-    duration: "Sau 2 liệu trình",
+    name: "Chị Thu Hồng",
+    service: "Gội đầu dưỡng sinh phục hồi",
+    duration: "Sau 1 tháng",
     beAndAf: BeforeAfter5,
-    notes: "Làn da căng bóng, nếp nhăn nhỏ mờ hẳn, bề mặt da mềm và đàn hồi tốt."
+    notes: "Giảm rụng tóc rõ rệt nhờ nước gội thảo mộc cô đặc và ủ dưỡng sâu. Động tác ấn huyệt đầu cổ vai gáy giúp giải tỏa stress và cải thiện giấc ngủ.",
   },
   {
     id: "story-6",
-    name: "Chị Liễu",
-    service: "Cấp ẩm chuyên sâu",
-    duration: "Sau 2 liệu trình",
+    name: "Chị Mai Liễu",
+    service: "Massage vai gáy thảo dược",
+    duration: "Sau 5 buổi",
     beAndAf: BeforeAfter6,
-    notes: "Làn da căng bóng, nếp nhăn nhỏ mờ hẳn, bề mặt da mềm và đàn hồi tốt."
+    notes: "Tình trạng đau mỏi tê bì vai gáy do làm việc máy tính lâu ngày thuyên giảm 90%. Phương pháp chườm ấm thảo dược tán phong thải độc cực kỳ dễ chịu.",
   },
   {
     id: "story-7",
-    name: "Chị Đào",
-    service: "Cấp ẩm chuyên sâu",
-    duration: "Sau 2 liệu trình",
+    name: "Chị Bích Đào",
+    service: "Chăm sóc da Terre độc quyền",
+    duration: "Sau 4 tuần",
     beAndAf: BeforeAfter7,
-    notes: "Làn da căng bóng, nếp nhăn nhỏ mờ hẳn, bề mặt da mềm và đàn hồi tốt."
+    notes: "Tone da sáng hồng đều màu, sắc tố da cải thiện rõ rệt. Các bước điện di tinh chất và massage độc quyền giúp da luôn giữ được độ ẩm tự nhiên.",
   },
   {
     id: "story-8",
-    name: "Chị Nụ",
-    service: "Cấp ẩm chuyên sâu",
-    duration: "Sau 2 liệu trình",
+    name: "Bạn Hoàng Yến",
+    service: "Triệt lông công nghệ lạnh",
+    duration: "Sau 3 buổi",
     beAndAf: BeforeAfter8,
-    notes: "Làn da căng bóng, nếp nhăn nhỏ mờ hẳn, bề mặt da mềm và đàn hồi tốt."
+    notes: "Liệu trình triệt lông đầu lạnh hoàn toàn êm ái, không đau rát. Nang lông se khít, lông mọc lại rất tơ và thưa, vùng da sáng mịn tự tin.",
   },
 ];
 

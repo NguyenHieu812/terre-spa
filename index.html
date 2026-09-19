@@ -1,76 +1,196 @@
 <!doctype html>
-<html lang="en">
-
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Terre Spa</title>
-    <meta name="keywords" content="terre spa, spa, chăm sóc sức khỏe, sắc đẹp, massage, thư giãn" />
-    <meta name="title" content="Terre Spa - Không gian thư giãn tuyệt vời" />
-    <meta name="description"
-      content="Terre Spa - Không gian thư giãn tuyệt vời với các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp." />
+    <title>Terre Spa - Gội Đầu Dưỡng Sinh, Massage Trị Liệu &amp; Chăm Sóc Da Hà Nội</title>
+    
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="Terre Spa - Gội Đầu Dưỡng Sinh, Massage Trị Liệu &amp; Chăm Sóc Da Hà Nội" />
+    <meta
+      name="description"
+      content="Terre Spa - Địa chỉ gội đầu dưỡng sinh Đông Y, massage trị liệu cổ vai gáy và chăm sóc phục hồi da chuyên sâu uy tín tại Kim Giang, Hoàng Mai, Hà Nội. Không gian thư giãn đẳng cấp cùng thảo dược thiên nhiên."
+    />
+    <meta
+      name="keywords"
+      content="terre spa, gội đầu dưỡng sinh hà nội, gội đầu dưỡng sinh hoàng mai, gội đầu dưỡng sinh kim giang, massage vai gáy hà nội, spa trị liệu định công, chăm sóc da mụn uy tín, phục hồi da yếu, massage body thảo dược, dưỡng sinh đông y"
+    />
+    <meta name="author" content="Terre Spa" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="theme-color" content="#40261b" />
+
+    <!-- Geo Meta Tags for Local SEO -->
+    <meta name="geo.region" content="VN-HN" />
+    <meta name="geo.placename" content="Hà Nội" />
+    <meta name="geo.position" content="20.9768471;105.8214203" />
+    <meta name="ICBM" content="20.9768471, 105.8214203" />
 
     <!-- Open Graph / Facebook / Zalo -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://terre-spa.vercel.app/" />
-    <meta property="og:title" content="Terre Spa - Không gian thư giãn tuyệt vời" />
-    <meta property="og:description"
-      content="Terre Spa - Không gian thư giãn tuyệt vời với các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp." />
+    <meta property="og:title" content="Terre Spa - Gội Đầu Dưỡng Sinh, Massage Trị Liệu &amp; Chăm Sóc Da Hà Nội" />
+    <meta
+      property="og:description"
+      content="Terre Spa - Không gian thư giãn tuyệt vời với các liệu pháp chăm sóc sức khỏe và sắc đẹp từ thảo dược thiên nhiên cao cấp tại Hà Nội."
+    />
+    <meta property="og:image" content="https://terre-spa.vercel.app/src/assets/images/spa_hero_bg_1781666735594.jpg" />
     <meta property="og:locale" content="vi_VN" />
     <meta property="og:site_name" content="Terre Spa" />
 
-    <!-- Canonical Tag -->
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://terre-spa.vercel.app/" />
+    <meta name="twitter:title" content="Terre Spa - Gội Đầu Dưỡng Sinh, Massage Trị Liệu &amp; Chăm Sóc Da Hà Nội" />
+    <meta
+      name="twitter:description"
+      content="Trải nghiệm không gian an yên và các liệu pháp dưỡng sinh, phục hồi sắc đẹp thiên nhiên cao cấp tại Terre Spa."
+    />
+    <meta name="twitter:image" content="https://terre-spa.vercel.app/src/assets/images/spa_hero_bg_1781666735594.jpg" />
+
+    <!-- Canonical Tag & Favicon -->
     <link rel="canonical" href="https://terre-spa.vercel.app/" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/images/favicon.svg" />
+
+    <!-- Schema.org JSON-LD Structured Data for Local Business / DaySpa -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "DaySpa",
+            "@id": "https://terre-spa.vercel.app/#spa",
+            "name": "Terre Spa - Gội Đầu Dưỡng Sinh & Chăm Sóc Da",
+            "url": "https://terre-spa.vercel.app",
+            "logo": "https://terre-spa.vercel.app/src/assets/images/logo-terre-removebg.png",
+            "image": "https://terre-spa.vercel.app/src/assets/images/spa_hero_bg_1781666735594.jpg",
+            "description": "Terre Spa mang đến không gian an yên và các liệu pháp gội đầu dưỡng sinh Đông Y, massage trị liệu cổ vai gáy, chăm sóc & trẻ hóa da từ thảo mộc thiên nhiên.",
+            "telephone": "+84569087777",
+            "priceRange": "149.000 VNĐ - 2.690.000 VNĐ",
+            "currenciesAccepted": "VND",
+            "paymentAccepted": "Cash, Credit Card, Bank Transfer, QR Code",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Số 2 ngõ 282/33 Đ. Kim Giang, Kim Văn",
+              "addressLocality": "Định Công, Hoàng Mai",
+              "addressRegion": "Hà Nội",
+              "postalCode": "100000",
+              "addressCountry": "VN"
+            },
+            "geo": {
+              "@type": "GeoCoordinates",
+              "latitude": 20.9768471,
+              "longitude": 105.8214203
+            },
+            "hasMap": "https://maps.google.com/?cid=135790412351235123",
+            "openingHoursSpecification": [
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": [
+                  "Monday",
+                  "Tuesday",
+                  "Wednesday",
+                  "Thursday",
+                  "Friday",
+                  "Saturday",
+                  "Sunday"
+                ],
+                "opens": "09:00",
+                "closes": "20:00"
+              }
+            ],
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "5.0",
+              "reviewCount": "58",
+              "bestRating": "5",
+              "worstRating": "1"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://terre-spa.vercel.app/#website",
+            "url": "https://terre-spa.vercel.app",
+            "name": "Terre Spa",
+            "description": "Không gian thư giãn & trị liệu thảo dược thiên nhiên",
+            "publisher": {
+              "@id": "https://terre-spa.vercel.app/#spa"
+            },
+            "inLanguage": "vi-VN"
+          }
+        ]
+      }
+    </script>
+
     <!-- Meta Pixel Code -->
     <script>
-    !function (f, b, e, v, n, t, s) {
-      if (f.fbq) return; n = f.fbq = function () {
-        n.callMethod ?
-          n.callMethod.apply(n, arguments) : n.queue.push(arguments)
-      };
-      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-      n.queue = []; t = b.createElement(e); t.async = !0;
-      t.src = v; s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s)
-    }(window, document, 'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1446951207192320');
-    fbq('track', 'PageView');
-  </script>
+      !(function (f, b, e, v, n, t, s) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod
+            ? n.callMethod.apply(n, arguments)
+            : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = !0;
+        n.version = "2.0";
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = !0;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s);
+      })(
+        window,
+        document,
+        "script",
+        "https://connect.facebook.net/en_US/fbevents.js",
+      );
+      fbq("init", "1446951207192320");
+      fbq("track", "PageView");
+    </script>
     <!-- End Meta Pixel Code -->
+
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18376097155"></script>
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=AW-18376097155"></script>
     <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'AW-18376097155');
-  </script>
-    <!-- Event snippet for Nhấp để gọi conversion page
-In your html page, add the snippet and call gtag_report_conversion when someone clicks on the chosen link or button. -->
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "AW-18376097155");
+    </script>
+    
+    <!-- Event snippet for Nhấp để gọi conversion page -->
     <script>
-function gtag_report_conversion(url) {
-  var callback = function () {
-    if (typeof(url) != 'undefined') {
-      window.location = url;
-    }
-  };
-  gtag('event', 'conversion', {
-      'send_to': 'AW-18376097155/AYiACK6q8-AcEIP7s7pE',
-      'event_callback': callback
-  });
-  return false;
-}
-</script>
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          if (typeof url != "undefined") {
+            window.location = url;
+          }
+        };
+        gtag("event", "conversion", {
+          send_to: "AW-18376097155/AYiACK6q8-AcEIP7s7pE",
+          event_callback: callback,
+        });
+        return false;
+      }
+    </script>
   </head>
 
   <body>
-    <noscript><img height="1" width="1" style="display:none"
-        src="https://www.facebook.com/tr?id=1446951207192320&ev=PageView&noscript=1" />
-    </noscript>
+    <noscript
+      ><img
+        height="1"
+        width="1"
+        style="display: none"
+        src="https://www.facebook.com/tr?id=1446951207192320&ev=PageView&noscript=1"
+        alt=""
+    /></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
-
 </html>

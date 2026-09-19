@@ -1,0 +1,7 @@
+# robots.txt for Terre Spa
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://terre-spa.vercel.app/sitemap.xml

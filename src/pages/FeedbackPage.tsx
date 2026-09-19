@@ -4,8 +4,16 @@ import { beforeAfterStories } from "../data/content";
 import { Footer } from "../components/Footer";
 import { Quote, Phone, Calendar, Sparkles } from "lucide-react";
 import Navbar from "../components/Navbar";
+import { usePageSEO } from "../hooks/usePageSEO";
 
 const FeedbackPage: React.FC = () => {
+  usePageSEO({
+    title: "Feedback & Nhật Ký Trị Liệu Thực Tế | Terre Spa",
+    description: "Khám phá những hình ảnh và câu chuyện thực tế trước & sau liệu trình chăm sóc da mụn, phục hồi da yếu và trẻ hóa tại Terre Spa.",
+    keywords: "feedback terre spa, trước sau trị mụn, hình ảnh khách hàng spa, đánh giá terre spa, phục hồi da yếu hà nội",
+    canonicalUrl: "https://terre-spa.vercel.app/feedback",
+  });
+
   return (
     <div className="min-h-screen bg-brand-50 flex flex-col font-sans selection:bg-brand-200 text-brand-950">
       {/* Thanh điều hướng duy nhất, chuẩn hóa đa thiết bị */}
@@ -26,14 +34,14 @@ const FeedbackPage: React.FC = () => {
             >
               <Sparkles className="w-3 h-3 text-brand-500" /> Nhật ký trị liệu thực tế
             </motion.div>
-            <motion.h2
+            <motion.h1
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-4xl md:text-5xl font-serif text-brand-900 font-light leading-tight tracking-wide"
             >
               Hành Trình Tái Sinh Làn Da
-            </motion.h2>
+            </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
