@@ -79,3 +79,9 @@ CREATE TABLE IF NOT EXISTS services (
 CREATE INDEX IF NOT EXISTS idx_services_category ON services(category_id);
 CREATE INDEX IF NOT EXISTS idx_services_featured ON services(featured);
 
+-- 5. Bảng Metadata Đồng bộ (App Meta)
+CREATE TABLE IF NOT EXISTS app_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

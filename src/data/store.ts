@@ -309,30 +309,157 @@ export const INITIAL_PRODUCTS: Product[] = [
 ];
 
 export const TERRE_DATA_SYNCED_EVENT = "terre_data_synced";
+export const LAST_MUTATION_STORAGE_KEY = "terre_spa_last_local_mutation";
+export const DELETED_POST_IDS_KEY = "terre_spa_deleted_post_ids";
+export const DELETED_PRODUCT_IDS_KEY = "terre_spa_deleted_product_ids";
+export const DELETED_SERVICE_IDS_KEY = "terre_spa_deleted_service_ids";
+
+// Tombstone tracking helpers
+export const getDeletedPostIds = (): Set<string> => {
+  try {
+    const saved = localStorage.getItem(DELETED_POST_IDS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch (e) {}
+  return new Set();
+};
+
+export const addDeletedPostId = (id: string): void => {
+  try {
+    const current = getDeletedPostIds();
+    current.add(id);
+    localStorage.setItem(DELETED_POST_IDS_KEY, JSON.stringify(Array.from(current)));
+  } catch (e) {}
+};
+
+export const clearDeletedPostId = (id: string): void => {
+  try {
+    const current = getDeletedPostIds();
+    if (current.delete(id)) {
+      localStorage.setItem(DELETED_POST_IDS_KEY, JSON.stringify(Array.from(current)));
+    }
+  } catch (e) {}
+};
+
+export const getDeletedProductIds = (): Set<string> => {
+  try {
+    const saved = localStorage.getItem(DELETED_PRODUCT_IDS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch (e) {}
+  return new Set();
+};
+
+export const addDeletedProductId = (id: string): void => {
+  try {
+    const current = getDeletedProductIds();
+    current.add(id);
+    localStorage.setItem(DELETED_PRODUCT_IDS_KEY, JSON.stringify(Array.from(current)));
+  } catch (e) {}
+};
+
+export const clearDeletedProductId = (id: string): void => {
+  try {
+    const current = getDeletedProductIds();
+    if (current.delete(id)) {
+      localStorage.setItem(DELETED_PRODUCT_IDS_KEY, JSON.stringify(Array.from(current)));
+    }
+  } catch (e) {}
+};
+
+export const getDeletedServiceIds = (): Set<string> => {
+  try {
+    const saved = localStorage.getItem(DELETED_SERVICE_IDS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch (e) {}
+  return new Set();
+};
+
+export const addDeletedServiceId = (id: string): void => {
+  try {
+    const current = getDeletedServiceIds();
+    current.add(id);
+    localStorage.setItem(DELETED_SERVICE_IDS_KEY, JSON.stringify(Array.from(current)));
+  } catch (e) {}
+};
+
+export const clearDeletedServiceId = (id: string): void => {
+  try {
+    const current = getDeletedServiceIds();
+    if (current.delete(id)) {
+      localStorage.setItem(DELETED_SERVICE_IDS_KEY, JSON.stringify(Array.from(current)));
+    }
+  } catch (e) {}
+};
+
+const recordLocalMutation = () => {
+  try {
+    localStorage.setItem(LAST_MUTATION_STORAGE_KEY, Date.now().toString());
+  } catch (e) {}
+};
 
 // Helper functions for Services & Categories
 export const getStoredServices = (): ServiceCategory[] => {
+  const deletedCatIds = getDeletedServiceIds();
   try {
     const saved = localStorage.getItem(SERVICES_STORAGE_KEY);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((cat) => !deletedCatIds.has(cat.id))
+          .map((cat) => ({
+            ...cat,
+            services: Array.isArray(cat.services)
+              ? cat.services.filter((s: any) => !deletedCatIds.has(s.id))
+              : [],
+          }));
+      }
     }
   } catch (e) {
     console.warn("Failed to load services from LocalStorage", e);
   }
-  return INITIAL_SERVICE_CATEGORIES;
+  return INITIAL_SERVICE_CATEGORIES.filter((cat) => !deletedCatIds.has(cat.id)).map((cat) => ({
+    ...cat,
+    services: cat.services.filter((s) => !deletedCatIds.has(s.id)),
+  }));
 };
 
 export const saveStoredServices = (serviceCategories: ServiceCategory[]): void => {
   try {
+    // Detect any deleted categories or services
+    const prevCats = getStoredServices();
+    const currentCatIds = new Set(serviceCategories.map((c) => c.id));
+    const currentSvcIds = new Set(serviceCategories.flatMap((c) => (c.services || []).map((s) => s.id)));
+
+    prevCats.forEach((c) => {
+      if (!currentCatIds.has(c.id)) addDeletedServiceId(c.id);
+      (c.services || []).forEach((s) => {
+        if (!currentSvcIds.has(s.id)) addDeletedServiceId(s.id);
+      });
+    });
+
+    serviceCategories.forEach((c) => {
+      clearDeletedServiceId(c.id);
+      (c.services || []).forEach((s) => clearDeletedServiceId(s.id));
+    });
+
     localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(serviceCategories));
+    recordLocalMutation();
     // Trigger auto-sync to Cloudflare if enabled
     checkAndAutoSync({
       posts: getStoredPosts(),
       products: getStoredProducts(),
       serviceCategories,
       reviews: getStoredReviews(),
+      deletedServiceIds: Array.from(getDeletedServiceIds()),
     });
   } catch (e: any) {
     console.error("Failed to save services to LocalStorage", e);
@@ -344,27 +471,44 @@ export const saveStoredServices = (serviceCategories: ServiceCategory[]): void =
 
 // Helper functions for Posts
 export const getStoredPosts = (): Post[] => {
+  const deletedIds = getDeletedPostIds();
   try {
     const saved = localStorage.getItem(POSTS_STORAGE_KEY);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.filter((p) => !deletedIds.has(p.id));
+      }
     }
   } catch (e) {
     console.warn("Failed to load posts from LocalStorage", e);
   }
-  return INITIAL_POSTS;
+  return INITIAL_POSTS.filter((p) => !deletedIds.has(p.id));
 };
 
 export const saveStoredPosts = (posts: Post[]): void => {
   try {
+    // Detect any deleted post IDs
+    const prevPosts = getStoredPosts();
+    const currentIds = new Set(posts.map((p) => p.id));
+    prevPosts.forEach((p) => {
+      if (!currentIds.has(p.id)) {
+        addDeletedPostId(p.id);
+      }
+    });
+
+    // Clear deleted status for any present posts
+    posts.forEach((p) => clearDeletedPostId(p.id));
+
     localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
+    recordLocalMutation();
     // Trigger auto-sync to Cloudflare if enabled
     checkAndAutoSync({
       posts,
       products: getStoredProducts(),
       serviceCategories: getStoredServices(),
       reviews: getStoredReviews(),
+      deletedPostIds: Array.from(getDeletedPostIds()),
     });
   } catch (e: any) {
     console.error("Failed to save posts to LocalStorage", e);
@@ -376,27 +520,44 @@ export const saveStoredPosts = (posts: Post[]): void => {
 
 // Helper functions for Products
 export const getStoredProducts = (): Product[] => {
+  const deletedIds = getDeletedProductIds();
   try {
     const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.filter((p) => !deletedIds.has(p.id));
+      }
     }
   } catch (e) {
     console.warn("Failed to load products from LocalStorage", e);
   }
-  return INITIAL_PRODUCTS;
+  return INITIAL_PRODUCTS.filter((p) => !deletedIds.has(p.id));
 };
 
 export const saveStoredProducts = (products: Product[]): void => {
   try {
+    // Detect any deleted product IDs
+    const prevProds = getStoredProducts();
+    const currentIds = new Set(products.map((p) => p.id));
+    prevProds.forEach((p) => {
+      if (!currentIds.has(p.id)) {
+        addDeletedProductId(p.id);
+      }
+    });
+
+    // Clear deleted status for any present products
+    products.forEach((p) => clearDeletedProductId(p.id));
+
     localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+    recordLocalMutation();
     // Trigger auto-sync to Cloudflare if enabled
     checkAndAutoSync({
       posts: getStoredPosts(),
       products,
       serviceCategories: getStoredServices(),
       reviews: getStoredReviews(),
+      deletedProductIds: Array.from(getDeletedProductIds()),
     });
   } catch (e: any) {
     console.error("Failed to save products to LocalStorage", e);
@@ -480,6 +641,7 @@ export const getStoredReviews = (): CustomerReview[] => {
 export const saveStoredReviews = (reviews: CustomerReview[]): void => {
   try {
     localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
+    recordLocalMutation();
     // Trigger auto-sync to Cloudflare if enabled
     checkAndAutoSync({
       posts: getStoredPosts(),
@@ -503,15 +665,23 @@ async function checkAndAutoSync(payload: {
   products: Product[];
   serviceCategories?: ServiceCategory[];
   reviews?: CustomerReview[];
+  deletedPostIds?: string[];
+  deletedProductIds?: string[];
+  deletedServiceIds?: string[];
 }) {
   const config = getDefaultCloudflareConfig();
   if (config.workerUrl && config.autoSync) {
     try {
-      await syncToCloudflare(config, payload);
+      const res = await syncToCloudflare(config, payload);
       config.lastSyncTime = new Date().toISOString();
-      config.syncStatus = "success";
-      config.syncMessage = "Tự động đồng bộ thành công";
+      config.syncStatus = res.success ? "success" : "error";
+      config.syncMessage = res.message;
       saveCloudflareConfig(config);
+      if (res.success && res.timestamp) {
+        try {
+          localStorage.setItem(LAST_MUTATION_STORAGE_KEY, new Date(res.timestamp).getTime().toString());
+        } catch (e) {}
+      }
     } catch (e: any) {
       config.syncStatus = "error";
       config.syncMessage = `Lỗi tự động đồng bộ: ${e.message}`;
@@ -531,27 +701,83 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
   try {
     isSyncInProgress = true;
     const config = getDefaultCloudflareConfig();
-    if (!config.workerUrl) return false;
+    if (!config.workerUrl || !config.workerUrl.trim()) return false;
 
     const res = await fetchFromCloudflare(config);
     if (res.success && res.data) {
-      const { posts, products, serviceCategories, reviews } = res.data;
+      const { posts, products, serviceCategories, reviews, lastUpdated } = res.data;
+
+      const lastLocalMutation = parseInt(localStorage.getItem(LAST_MUTATION_STORAGE_KEY) || "0", 10);
+      const serverTimestamp = lastUpdated ? new Date(lastUpdated).getTime() : 0;
+
+      // Filter out any items that have been deleted locally
+      const deletedPostIds = getDeletedPostIds();
+      const deletedProductIds = getDeletedProductIds();
+      const deletedServiceIds = getDeletedServiceIds();
+
+      const filteredPosts = Array.isArray(posts) ? posts.filter((p) => !deletedPostIds.has(p.id)) : [];
+      const filteredProducts = Array.isArray(products) ? products.filter((p) => !deletedProductIds.has(p.id)) : [];
+      const filteredServices = Array.isArray(serviceCategories)
+        ? serviceCategories
+            .filter((c) => !deletedServiceIds.has(c.id))
+            .map((c) => ({
+              ...c,
+              services: Array.isArray(c.services)
+                ? c.services.filter((s: any) => !deletedServiceIds.has(s.id))
+                : [],
+            }))
+        : [];
+      const filteredReviews = Array.isArray(reviews) ? reviews : [];
+
+      // Check if server returned any zombie items that should be deleted
+      const hadZombiePost = Array.isArray(posts) && posts.some((p) => deletedPostIds.has(p.id));
+      const hadZombieProduct = Array.isArray(products) && products.some((p) => deletedProductIds.has(p.id));
+
+      if (hadZombiePost || hadZombieProduct) {
+        console.debug("Server had deleted items. Pushing local cleanup to Cloudflare...");
+        checkAndAutoSync({
+          posts: filteredPosts,
+          products: filteredProducts,
+          serviceCategories: filteredServices,
+          reviews: filteredReviews,
+          deletedPostIds: Array.from(deletedPostIds),
+          deletedProductIds: Array.from(deletedProductIds),
+          deletedServiceIds: Array.from(deletedServiceIds),
+        });
+      }
+
+      // CRITICAL GUARD: If local was modified at or after server's data timestamp,
+      // DO NOT overwrite local deletions or edits! Instead, re-push local data to cloud.
+      if (lastLocalMutation > 0 && serverTimestamp > 0 && serverTimestamp <= lastLocalMutation) {
+        console.debug("Local changes are newer than Cloudflare. Pushing local to cloud instead of overwriting...");
+        checkAndAutoSync({
+          posts: getStoredPosts(),
+          products: getStoredProducts(),
+          serviceCategories: getStoredServices(),
+          reviews: getStoredReviews(),
+          deletedPostIds: Array.from(deletedPostIds),
+          deletedProductIds: Array.from(deletedProductIds),
+          deletedServiceIds: Array.from(deletedServiceIds),
+        });
+        return true;
+      }
+
       let hasUpdates = false;
 
       if (Array.isArray(posts)) {
-        localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
+        localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(filteredPosts));
         hasUpdates = true;
       }
       if (Array.isArray(products)) {
-        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(filteredProducts));
         hasUpdates = true;
       }
       if (Array.isArray(serviceCategories)) {
-        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(serviceCategories));
+        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(filteredServices));
         hasUpdates = true;
       }
       if (Array.isArray(reviews)) {
-        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
+        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(filteredReviews));
         hasUpdates = true;
       }
 
@@ -559,11 +785,11 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
         window.dispatchEvent(
           new CustomEvent(TERRE_DATA_SYNCED_EVENT, {
             detail: {
-              posts,
-              products,
-              serviceCategories,
-              reviews,
-              timestamp: new Date().toISOString(),
+              posts: filteredPosts,
+              products: filteredProducts,
+              serviceCategories: filteredServices,
+              reviews: filteredReviews,
+              timestamp: lastUpdated || new Date().toISOString(),
             },
           })
         );

@@ -114,6 +114,9 @@ export async function syncToCloudflare(
     products: Product[];
     serviceCategories?: ServiceCategory[];
     reviews?: CustomerReview[];
+    deletedPostIds?: string[];
+    deletedProductIds?: string[];
+    deletedServiceIds?: string[];
   }
 ): Promise<{ success: boolean; message: string; timestamp?: string }> {
   if (!config.workerUrl || !config.workerUrl.trim()) {
@@ -143,6 +146,9 @@ export async function syncToCloudflare(
         products: payload.products,
         serviceCategories: payload.serviceCategories || [],
         reviews: payload.reviews || [],
+        deletedPostIds: payload.deletedPostIds || [],
+        deletedProductIds: payload.deletedProductIds || [],
+        deletedServiceIds: payload.deletedServiceIds || [],
         version: "1.0.0",
         timestamp: new Date().toISOString(),
       }),

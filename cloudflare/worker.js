@@ -177,9 +177,36 @@ export default {
             usage_instructions TEXT,
             updated_at TEXT
           );
+
+          CREATE TABLE IF NOT EXISTS service_categories (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            icon_name TEXT DEFAULT 'Sparkles',
+            image TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0
+          );
+
+          CREATE TABLE IF NOT EXISTS services (
+            id TEXT PRIMARY KEY,
+            category_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            price TEXT NOT NULL,
+            description TEXT NOT NULL,
+            duration_minutes INTEGER,
+            image TEXT,
+            featured INTEGER DEFAULT 0,
+            sort_order INTEGER DEFAULT 0,
+            updated_at TEXT
+          );
+
+          CREATE TABLE IF NOT EXISTS app_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
         `);
 
-        return jsonResponse({ success: true, message: "D1 Database tables 'posts' and 'products' initialized successfully!" });
+        return jsonResponse({ success: true, message: "D1 Database tables initialized successfully!" });
       }
 
       // 3. Full Sync (GET & POST)
@@ -189,6 +216,7 @@ export default {
           let products = [];
           let serviceCategories = [];
           let reviews = [];
+          let dbLastUpdated = null;
 
           if (db) {
             try {
@@ -222,6 +250,13 @@ export default {
                     featured: Boolean(s.featured),
                   })),
               }));
+
+              try {
+                const metaRow = await db.prepare("SELECT value FROM app_meta WHERE key = 'last_updated'").first();
+                if (metaRow && metaRow.value) {
+                  dbLastUpdated = metaRow.value;
+                }
+              } catch (e) {}
             } catch (e) {
               console.warn("D1 query fallback to KV", e);
             }
@@ -232,10 +267,15 @@ export default {
             const rawProducts = await kv.get("terre_products", { type: "json" });
             const rawSvcs = await kv.get("terre_services", { type: "json" });
             const rawReviews = await kv.get("terre_reviews", { type: "json" });
+            const rawMeta = await kv.get("terre_meta", { type: "json" });
+
             if (rawPosts && (!posts || posts.length === 0)) posts = rawPosts;
             if (rawProducts && (!products || products.length === 0)) products = rawProducts;
             if (rawSvcs && (!serviceCategories || serviceCategories.length === 0)) serviceCategories = rawSvcs;
             if (rawReviews) reviews = rawReviews;
+            if (!dbLastUpdated && rawMeta?.lastUpdated) {
+              dbLastUpdated = rawMeta.lastUpdated;
+            }
           }
 
           return jsonResponse({
@@ -249,7 +289,7 @@ export default {
             totalProducts: products.length,
             totalServiceCategories: serviceCategories.length,
             totalReviews: reviews.length,
-            lastUpdated: new Date().toISOString(),
+            lastUpdated: dbLastUpdated || "2026-01-01T00:00:00.000Z",
           });
         }
 
@@ -259,12 +299,26 @@ export default {
           }
 
           const body = await request.json();
-          const { posts, products, serviceCategories, reviews } = body;
-          const timestamp = new Date().toISOString();
+          const { posts, products, serviceCategories, reviews, deletedPostIds, deletedProductIds, deletedServiceIds } = body;
+          const timestamp = body.timestamp || new Date().toISOString();
 
           // Save to Cloudflare D1 (Relational SQL Database)
           if (db) {
-            // Save Posts to D1
+            // 1. Handle Explicit Deletions first
+            if (Array.isArray(deletedPostIds) && deletedPostIds.length > 0) {
+              const dPlaceholders = deletedPostIds.map(() => "?").join(",");
+              await db.prepare(`DELETE FROM posts WHERE id IN (${dPlaceholders})`).bind(...deletedPostIds).run();
+            }
+            if (Array.isArray(deletedProductIds) && deletedProductIds.length > 0) {
+              const dPlaceholders = deletedProductIds.map(() => "?").join(",");
+              await db.prepare(`DELETE FROM products WHERE id IN (${dPlaceholders})`).bind(...deletedProductIds).run();
+            }
+            if (Array.isArray(deletedServiceIds) && deletedServiceIds.length > 0) {
+              const dPlaceholders = deletedServiceIds.map(() => "?").join(",");
+              await db.prepare(`DELETE FROM services WHERE id IN (${dPlaceholders})`).bind(...deletedServiceIds).run();
+            }
+
+            // 2. Save Posts to D1
             if (Array.isArray(posts)) {
               if (posts.length > 0) {
                 const placeholders = posts.map(() => "?").join(",");
@@ -325,7 +379,7 @@ export default {
               }
             }
 
-            // Save Products to D1
+            // 3. Save Products to D1
             if (Array.isArray(products)) {
               if (products.length > 0) {
                 const placeholders = products.map(() => "?").join(",");
@@ -389,7 +443,7 @@ export default {
               }
             }
 
-            // Save Service Categories & Services to D1
+            // 4. Save Service Categories & Services to D1
             if (Array.isArray(serviceCategories)) {
               if (serviceCategories.length > 0) {
                 const catPlaceholders = serviceCategories.map(() => "?").join(",");
@@ -465,6 +519,17 @@ export default {
                 }
               }
             }
+
+            // Record lastUpdated in D1 meta
+            try {
+              await db
+                .prepare(
+                  `INSERT INTO app_meta (key, value, updated_at) VALUES ('last_updated', ?, ?)
+                   ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+                )
+                .bind(timestamp, timestamp)
+                .run();
+            } catch (e) {}
           }
 
           // Also backup to KV if KV exists
@@ -496,7 +561,9 @@ export default {
       }
 
       // 4. SQL Posts Endpoints
-      if (path === "/api/posts") {
+      if (path === "/api/posts" || path.startsWith("/api/posts/")) {
+        const postIdFromPath = path.startsWith("/api/posts/") ? path.replace("/api/posts/", "") : url.searchParams.get("id");
+
         if (request.method === "GET") {
           let posts = [];
           if (db) {
@@ -507,6 +574,23 @@ export default {
             if (raw) posts = raw;
           }
           return jsonResponse({ success: true, posts });
+        }
+
+        if (request.method === "DELETE") {
+          if (!verifyAuth(request, env)) return jsonResponse({ error: "Unauthorized" }, 401);
+          if (!postIdFromPath) return jsonResponse({ error: "Missing post ID" }, 400);
+
+          if (db) {
+            await db.prepare("DELETE FROM posts WHERE id = ?").bind(postIdFromPath).run();
+          }
+          if (kv) {
+            const raw = await kv.get("terre_posts", { type: "json" });
+            if (Array.isArray(raw)) {
+              const filtered = raw.filter((p) => p.id !== postIdFromPath);
+              await kv.put("terre_posts", JSON.stringify(filtered));
+            }
+          }
+          return jsonResponse({ success: true, message: `Deleted post ${postIdFromPath}` });
         }
 
         if (request.method === "POST") {
@@ -567,7 +651,9 @@ export default {
       }
 
       // 5. SQL Products Endpoints
-      if (path === "/api/products") {
+      if (path === "/api/products" || path.startsWith("/api/products/")) {
+        const prodIdFromPath = path.startsWith("/api/products/") ? path.replace("/api/products/", "") : url.searchParams.get("id");
+
         if (request.method === "GET") {
           let products = [];
           if (db) {
@@ -578,6 +664,23 @@ export default {
             if (raw) products = raw;
           }
           return jsonResponse({ success: true, products });
+        }
+
+        if (request.method === "DELETE") {
+          if (!verifyAuth(request, env)) return jsonResponse({ error: "Unauthorized" }, 401);
+          if (!prodIdFromPath) return jsonResponse({ error: "Missing product ID" }, 400);
+
+          if (db) {
+            await db.prepare("DELETE FROM products WHERE id = ?").bind(prodIdFromPath).run();
+          }
+          if (kv) {
+            const raw = await kv.get("terre_products", { type: "json" });
+            if (Array.isArray(raw)) {
+              const filtered = raw.filter((p) => p.id !== prodIdFromPath);
+              await kv.put("terre_products", JSON.stringify(filtered));
+            }
+          }
+          return jsonResponse({ success: true, message: `Deleted product ${prodIdFromPath}` });
         }
 
         if (request.method === "POST") {
