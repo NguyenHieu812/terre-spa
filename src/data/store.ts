@@ -538,19 +538,19 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
       const { posts, products, serviceCategories, reviews } = res.data;
       let hasUpdates = false;
 
-      if (Array.isArray(posts) && posts.length > 0) {
+      if (Array.isArray(posts)) {
         localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
         hasUpdates = true;
       }
-      if (Array.isArray(products) && products.length > 0) {
+      if (Array.isArray(products)) {
         localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
         hasUpdates = true;
       }
-      if (Array.isArray(serviceCategories) && serviceCategories.length > 0) {
+      if (Array.isArray(serviceCategories)) {
         localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(serviceCategories));
         hasUpdates = true;
       }
-      if (Array.isArray(reviews) && reviews.length > 0) {
+      if (Array.isArray(reviews)) {
         localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
         hasUpdates = true;
       }

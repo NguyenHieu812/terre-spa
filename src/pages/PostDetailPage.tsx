@@ -17,11 +17,14 @@ import {
 } from "lucide-react";
 import { usePageSEO } from "../hooks/usePageSEO";
 
+import { getCurrentAdminUser } from "../services/authStore";
+
 export const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [post, setPost] = useState<Post | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
   const [copied, setCopied] = useState(false);
+  const isAdmin = Boolean(getCurrentAdminUser());
 
   usePageSEO({
     title: post ? `${post.title} | Terre Spa` : "Chi Tiết Bài Viết | Terre Spa",
@@ -59,11 +62,18 @@ export const PostDetailPage: React.FC = () => {
       const found = allPosts.find((p) => p.id === id || p.slug === id);
       if (found) {
         setPost(found);
-        // Related posts
-        const related = allPosts
+        // Only show published posts in related posts section (NEVER show draft/hidden posts)
+        const publishedPosts = allPosts.filter((p) => p.status === "published");
+        const related = publishedPosts
           .filter((p) => p.id !== found.id && p.category === found.category)
           .slice(0, 3);
-        setRelatedPosts(related.length > 0 ? related : allPosts.filter((p) => p.id !== found.id).slice(0, 3));
+        setRelatedPosts(
+          related.length > 0
+            ? related
+            : publishedPosts.filter((p) => p.id !== found.id).slice(0, 3)
+        );
+      } else {
+        setPost(null);
       }
     };
 
@@ -105,6 +115,32 @@ export const PostDetailPage: React.FC = () => {
     );
   }
 
+  if (post.status === "draft" && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-brand-50 flex flex-col font-sans text-brand-950">
+        <Navbar />
+        <main className="flex-1 pt-32 pb-16 flex items-center justify-center px-4">
+          <div className="bg-white p-10 rounded-3xl border border-brand-200 text-center max-w-md space-y-4 shadow-xl">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-xl">
+              🔒
+            </div>
+            <h2 className="text-2xl font-serif font-bold text-brand-900">Bài viết đang tạm ẩn</h2>
+            <p className="text-xs text-brand-600">
+              Bài viết này hiện đang ở chế độ bản nháp hoặc đã được tác giả tạm ẩn khỏi chế độ công khai.
+            </p>
+            <Link
+              to="/posts"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-900 text-white rounded-xl text-xs font-semibold uppercase tracking-wider"
+            >
+              <ArrowLeft className="w-4 h-4" /> Khám phá các bài viết khác
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-brand-50 flex flex-col font-sans text-brand-950">
       <Navbar />
@@ -112,6 +148,11 @@ export const PostDetailPage: React.FC = () => {
       <main className="flex-1 pt-24 md:pt-32 pb-20">
         {/* Article Breadcrumb & Back */}
         <div className="max-w-4xl mx-auto px-4 pt-4 pb-6">
+          {post.status === "draft" && (
+            <div className="bg-amber-500 text-white text-xs font-semibold py-2.5 px-4 rounded-xl mb-4 shadow-sm flex items-center justify-center gap-2">
+              <span>⚠️ Bạn đang xem bài viết này ở chế độ <strong>Xem trước (Bản nháp - Ẩn với khách)</strong>.</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <Link
               to="/posts"

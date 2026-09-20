@@ -266,6 +266,16 @@ export default {
           if (db) {
             // Save Posts to D1
             if (Array.isArray(posts)) {
+              if (posts.length > 0) {
+                const placeholders = posts.map(() => "?").join(",");
+                await db
+                  .prepare(`DELETE FROM posts WHERE id NOT IN (${placeholders})`)
+                  .bind(...posts.map((p) => p.id))
+                  .run();
+              } else {
+                await db.prepare("DELETE FROM posts").run();
+              }
+
               for (const post of posts) {
                 await db
                   .prepare(
@@ -317,6 +327,16 @@ export default {
 
             // Save Products to D1
             if (Array.isArray(products)) {
+              if (products.length > 0) {
+                const placeholders = products.map(() => "?").join(",");
+                await db
+                  .prepare(`DELETE FROM products WHERE id NOT IN (${placeholders})`)
+                  .bind(...products.map((p) => p.id))
+                  .run();
+              } else {
+                await db.prepare("DELETE FROM products").run();
+              }
+
               for (const prod of products) {
                 await db
                   .prepare(
@@ -371,6 +391,28 @@ export default {
 
             // Save Service Categories & Services to D1
             if (Array.isArray(serviceCategories)) {
+              if (serviceCategories.length > 0) {
+                const catPlaceholders = serviceCategories.map(() => "?").join(",");
+                await db
+                  .prepare(`DELETE FROM service_categories WHERE id NOT IN (${catPlaceholders})`)
+                  .bind(...serviceCategories.map((c) => c.id))
+                  .run();
+
+                const allSvcIds = serviceCategories.flatMap((c) => (c.services || []).map((s) => s.id));
+                if (allSvcIds.length > 0) {
+                  const svcPlaceholders = allSvcIds.map(() => "?").join(",");
+                  await db
+                    .prepare(`DELETE FROM services WHERE id NOT IN (${svcPlaceholders})`)
+                    .bind(...allSvcIds)
+                    .run();
+                } else {
+                  await db.prepare("DELETE FROM services").run();
+                }
+              } else {
+                await db.prepare("DELETE FROM service_categories").run();
+                await db.prepare("DELETE FROM services").run();
+              }
+
               for (let i = 0; i < serviceCategories.length; i++) {
                 const cat = serviceCategories[i];
                 await db
