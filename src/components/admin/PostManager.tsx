@@ -59,6 +59,7 @@ export const PostManager: React.FC<PostManagerProps> = ({
 }) => {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<{ id: string; title: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -162,10 +163,19 @@ export const PostManager: React.FC<PostManagerProps> = ({
     setIsCreating(false);
   };
 
-  const handleDelete = (id: string, title: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa bài viết "${title}" không?`)) {
-      onDeletePost(id);
-      showToast("Đã xóa bài viết.");
+  const handleDeleteClick = (id: string, title: string) => {
+    setPostToDelete({ id, title });
+  };
+
+  const handleConfirmDelete = () => {
+    if (postToDelete) {
+      onDeletePost(postToDelete.id);
+      showToast(`Đã xóa bài viết "${postToDelete.title}" thành công!`);
+      if (editingPost?.id === postToDelete.id) {
+        setEditingPost(null);
+        setIsCreating(false);
+      }
+      setPostToDelete(null);
     }
   };
 
@@ -205,6 +215,16 @@ export const PostManager: React.FC<PostManagerProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            {!isCreating && canDelete && (
+              <button
+                type="button"
+                onClick={() => handleDeleteClick(editingPost.id, editingPost.title || "Bài viết")}
+                className="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
+                title="Xóa bài viết này"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Xóa bài
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setEditingPost(null)}
@@ -716,7 +736,7 @@ export const PostManager: React.FC<PostManagerProps> = ({
                         {canDelete && (
                           <button
                             type="button"
-                            onClick={() => handleDelete(post.id, post.title)}
+                            onClick={() => handleDeleteClick(post.id, post.title)}
                             title="Xóa bài viết"
                             className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                           >
@@ -732,6 +752,46 @@ export const PostManager: React.FC<PostManagerProps> = ({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-brand-200 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-serif font-bold text-brand-900">Xác nhận xóa bài viết</h3>
+                <p className="text-xs text-brand-500">Hành động này không thể hoàn tác</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-brand-700 leading-relaxed">
+              Bạn có chắc chắn muốn xóa bài viết{" "}
+              <strong className="text-brand-950 font-bold">"{postToDelete.title}"</strong>?
+              Bài viết sẽ bị gỡ bỏ vĩnh viễn khỏi website và cơ sở dữ liệu.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPostToDelete(null)}
+                className="px-4 py-2 border border-brand-200 text-brand-700 hover:bg-brand-50 rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" /> Xác nhận xóa
+              </button>
+            </div>
           </div>
         </div>
       )}

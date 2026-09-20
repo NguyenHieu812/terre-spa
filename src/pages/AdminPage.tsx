@@ -125,41 +125,49 @@ const AdminPage: React.FC = () => {
   };
 
   const handleSavePost = (updatedPost: Post) => {
-    let newPosts: Post[];
-    const idx = posts.findIndex((p) => p.id === updatedPost.id);
-    if (idx >= 0) {
-      newPosts = [...posts];
-      newPosts[idx] = updatedPost;
-    } else {
-      newPosts = [updatedPost, ...posts];
-    }
-    setPosts(newPosts);
-    saveStoredPosts(newPosts);
+    setPosts((prevPosts) => {
+      let newPosts: Post[];
+      const idx = prevPosts.findIndex((p) => p.id === updatedPost.id);
+      if (idx >= 0) {
+        newPosts = [...prevPosts];
+        newPosts[idx] = updatedPost;
+      } else {
+        newPosts = [updatedPost, ...prevPosts];
+      }
+      saveStoredPosts(newPosts);
+      return newPosts;
+    });
   };
 
   const handleDeletePost = (id: string) => {
-    const newPosts = posts.filter((p) => p.id !== id);
-    setPosts(newPosts);
-    saveStoredPosts(newPosts);
+    setPosts((prevPosts) => {
+      const newPosts = prevPosts.filter((p) => p.id !== id);
+      saveStoredPosts(newPosts);
+      return newPosts;
+    });
   };
 
   const handleSaveProduct = (updatedProduct: Product) => {
-    let newProducts: Product[];
-    const idx = products.findIndex((p) => p.id === updatedProduct.id);
-    if (idx >= 0) {
-      newProducts = [...products];
-      newProducts[idx] = updatedProduct;
-    } else {
-      newProducts = [updatedProduct, ...products];
-    }
-    setProducts(newProducts);
-    saveStoredProducts(newProducts);
+    setProducts((prevProds) => {
+      let newProducts: Product[];
+      const idx = prevProds.findIndex((p) => p.id === updatedProduct.id);
+      if (idx >= 0) {
+        newProducts = [...prevProds];
+        newProducts[idx] = updatedProduct;
+      } else {
+        newProducts = [updatedProduct, ...prevProds];
+      }
+      saveStoredProducts(newProducts);
+      return newProducts;
+    });
   };
 
   const handleDeleteProduct = (id: string) => {
-    const newProducts = products.filter((p) => p.id !== id);
-    setProducts(newProducts);
-    saveStoredProducts(newProducts);
+    setProducts((prevProds) => {
+      const newProducts = prevProds.filter((p) => p.id !== id);
+      saveStoredProducts(newProducts);
+      return newProducts;
+    });
   };
 
   const handleSaveServices = (updated: ServiceCategory[]) => {

@@ -57,6 +57,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 }) => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStock, setFilterStock] = useState("all");
@@ -84,19 +85,19 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       id: `prod-${Date.now()}`,
       name: "",
       slug: "",
-      category: "Chăm sóc tóc",
-      price: 200000,
-      originalPrice: 250000,
+      category: "Dầu Gội Thảo Mộc",
+      price: 199000,
       thumbnail: hairWashImg,
+      images: [hairWashImg],
       shortDesc: "",
       fullDesc: "",
       inStock: true,
       featured: false,
       rating: 5.0,
       reviewCount: 1,
-      volumeOrWeight: "500ml",
-      ingredients: ["Bồ kết", "Vỏ bưởi", "Hương nhu"],
-      usageInstructions: "Thoa đều lên tóc ướt và massage nhẹ nhàng rồi xả sạch với nước.",
+      volumeOrWeight: "300ml",
+      ingredients: ["Bồ kết", "Hương nhu", "Sả chanh"],
+      usageInstructions: "Làm ướt tóc, lấy lượng vừa đủ massage nhẹ nhàng rồi xả sạch với nước.",
     };
     setEditingProduct(newProd);
     setIsCreating(true);
@@ -161,11 +162,24 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setIsCreating(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${name}" không?`)) {
-      onDeleteProduct(id);
-      showToast("Đã xóa sản phẩm.");
+  const handleDeleteClick = (id: string, name: string) => {
+    setProductToDelete({ id, name });
+  };
+
+  const handleConfirmDelete = () => {
+    if (productToDelete) {
+      onDeleteProduct(productToDelete.id);
+      showToast(`Đã xóa sản phẩm "${productToDelete.name}" thành công!`);
+      if (editingProduct?.id === productToDelete.id) {
+        setEditingProduct(null);
+        setIsCreating(false);
+      }
+      setProductToDelete(null);
     }
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    handleDeleteClick(id, name);
   };
 
   const filteredProducts = products.filter((prod) => {
@@ -209,6 +223,16 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            {!isCreating && canDelete && (
+              <button
+                type="button"
+                onClick={() => handleDeleteClick(editingProduct.id, editingProduct.name || "Sản phẩm")}
+                className="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
+                title="Xóa sản phẩm này"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Xóa sản phẩm
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setEditingProduct(null)}
@@ -757,6 +781,46 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-brand-200 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-serif font-bold text-brand-900">Xác nhận xóa sản phẩm</h3>
+                <p className="text-xs text-brand-500">Hành động này không thể hoàn tác</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-brand-700 leading-relaxed">
+              Bạn có chắc chắn muốn xóa sản phẩm{" "}
+              <strong className="text-brand-950 font-bold">"{productToDelete.name}"</strong>?
+              Sản phẩm sẽ bị gỡ bỏ vĩnh viễn khỏi website và cơ sở dữ liệu.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2 border border-brand-200 text-brand-700 hover:bg-brand-50 rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" /> Xác nhận xóa
+              </button>
+            </div>
           </div>
         </div>
       )}
