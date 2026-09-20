@@ -188,6 +188,7 @@ export default {
           let posts = [];
           let products = [];
           let serviceCategories = [];
+          let reviews = [];
 
           if (db) {
             try {
@@ -224,13 +225,17 @@ export default {
             } catch (e) {
               console.warn("D1 query fallback to KV", e);
             }
-          } else if (kv) {
+          }
+
+          if (kv) {
             const rawPosts = await kv.get("terre_posts", { type: "json" });
             const rawProducts = await kv.get("terre_products", { type: "json" });
             const rawSvcs = await kv.get("terre_services", { type: "json" });
-            if (rawPosts) posts = rawPosts;
-            if (rawProducts) products = rawProducts;
-            if (rawSvcs) serviceCategories = rawSvcs;
+            const rawReviews = await kv.get("terre_reviews", { type: "json" });
+            if (rawPosts && (!posts || posts.length === 0)) posts = rawPosts;
+            if (rawProducts && (!products || products.length === 0)) products = rawProducts;
+            if (rawSvcs && (!serviceCategories || serviceCategories.length === 0)) serviceCategories = rawSvcs;
+            if (rawReviews) reviews = rawReviews;
           }
 
           return jsonResponse({
@@ -238,10 +243,12 @@ export default {
             posts,
             products,
             serviceCategories,
+            reviews,
             databaseType: db ? "Cloudflare D1 (SQL)" : "Cloudflare KV",
             totalPosts: posts.length,
             totalProducts: products.length,
             totalServiceCategories: serviceCategories.length,
+            totalReviews: reviews.length,
             lastUpdated: new Date().toISOString(),
           });
         }
@@ -252,7 +259,7 @@ export default {
           }
 
           const body = await request.json();
-          const { posts, products, serviceCategories } = body;
+          const { posts, products, serviceCategories, reviews } = body;
           const timestamp = new Date().toISOString();
 
           // Save to Cloudflare D1 (Relational SQL Database)
@@ -423,7 +430,14 @@ export default {
             if (Array.isArray(posts)) await kv.put("terre_posts", JSON.stringify(posts));
             if (Array.isArray(products)) await kv.put("terre_products", JSON.stringify(products));
             if (Array.isArray(serviceCategories)) await kv.put("terre_services", JSON.stringify(serviceCategories));
-            await kv.put("terre_meta", JSON.stringify({ lastUpdated: timestamp, countPosts: posts?.length || 0, countProducts: products?.length || 0, countServices: serviceCategories?.length || 0 }));
+            if (Array.isArray(reviews)) await kv.put("terre_reviews", JSON.stringify(reviews));
+            await kv.put("terre_meta", JSON.stringify({
+              lastUpdated: timestamp,
+              countPosts: posts?.length || 0,
+              countProducts: products?.length || 0,
+              countServices: serviceCategories?.length || 0,
+              countReviews: reviews?.length || 0
+            }));
           }
 
           return jsonResponse({
@@ -433,6 +447,7 @@ export default {
             savedPosts: posts?.length || 0,
             savedProducts: products?.length || 0,
             savedServiceCategories: serviceCategories?.length || 0,
+            savedReviews: reviews?.length || 0,
             lastUpdated: timestamp,
           });
         }

@@ -43,6 +43,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
   minHeight = "360px",
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const savedRangeRef = useRef<Range | null>(null);
   const [isHtmlMode, setIsHtmlMode] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -69,6 +70,16 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     updateStats(value || "");
   }, [value, isHtmlMode]);
 
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current) {
+      const range = sel.getRangeAt(0);
+      if (editorRef.current.contains(range.commonAncestorContainer)) {
+        savedRangeRef.current = range.cloneRange();
+      }
+    }
+  };
+
   const updateStats = (html: string) => {
     const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const words = text ? text.split(/\s+/).length : 0;
@@ -81,6 +92,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       const html = editorRef.current.innerHTML;
       onChange(html);
       updateStats(html);
+      saveSelection();
     }
   };
 
@@ -88,8 +100,16 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     if (isHtmlMode) return;
     if (editorRef.current) {
       editorRef.current.focus();
+      if (savedRangeRef.current && editorRef.current.contains(savedRangeRef.current.commonAncestorContainer)) {
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(savedRangeRef.current);
+        }
+      }
     }
     document.execCommand(command, false, value);
+    saveSelection();
     handleEditorInput();
   };
 
@@ -97,8 +117,16 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     if (isHtmlMode) return;
     if (editorRef.current) {
       editorRef.current.focus();
+      if (savedRangeRef.current && editorRef.current.contains(savedRangeRef.current.commonAncestorContainer)) {
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(savedRangeRef.current);
+        }
+      }
     }
     document.execCommand("formatBlock", false, tag);
+    saveSelection();
     handleEditorInput();
   };
 
@@ -107,10 +135,55 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       onChange(value + "\n" + htmlString);
       return;
     }
-    if (editorRef.current) {
-      editorRef.current.focus();
+    if (!editorRef.current) return;
+
+    editorRef.current.focus();
+
+    const sel = window.getSelection();
+    let targetRange: Range | null = null;
+
+    if (savedRangeRef.current && editorRef.current.contains(savedRangeRef.current.commonAncestorContainer)) {
+      targetRange = savedRangeRef.current;
+    } else if (sel && sel.rangeCount > 0 && editorRef.current.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      targetRange = sel.getRangeAt(0);
     }
-    document.execCommand("insertHTML", false, htmlString);
+
+    if (targetRange) {
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(targetRange);
+      }
+
+      targetRange.deleteContents();
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlString;
+      const frag = document.createDocumentFragment();
+      let node: ChildNode | null;
+      let lastNode: ChildNode | null = null;
+      while ((node = tempDiv.firstChild)) {
+        lastNode = frag.appendChild(node);
+      }
+      targetRange.insertNode(frag);
+
+      if (lastNode) {
+        const newRange = document.createRange();
+        newRange.setStartAfter(lastNode);
+        newRange.collapse(true);
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        }
+        savedRangeRef.current = newRange.cloneRange();
+      }
+    } else {
+      // If no selection exists inside editor, append to end instead of jumping to top
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlString;
+      while (tempDiv.firstChild) {
+        editorRef.current.appendChild(tempDiv.firstChild);
+      }
+    }
+
     handleEditorInput();
   };
 
@@ -321,7 +394,11 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
           <div className="flex items-center gap-0.5">
             <button
               type="button"
-              onClick={() => setShowImageModal(true)}
+              onMouseDown={saveSelection}
+              onClick={() => {
+                saveSelection();
+                setShowImageModal(true);
+              }}
               title="Chèn hình ảnh"
               className="p-1.5 text-brand-800 hover:bg-brand-200/70 rounded transition-colors flex items-center gap-1 text-xs font-medium"
             >
@@ -330,7 +407,11 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setShowLinkModal(true)}
+              onMouseDown={saveSelection}
+              onClick={() => {
+                saveSelection();
+                setShowLinkModal(true);
+              }}
               title="Chèn liên kết"
               className="p-1.5 text-brand-800 hover:bg-brand-200/70 rounded transition-colors flex items-center gap-1 text-xs font-medium"
             >
@@ -339,7 +420,11 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
             </button>
             <button
               type="button"
-              onClick={insertCalloutBox}
+              onMouseDown={saveSelection}
+              onClick={() => {
+                saveSelection();
+                insertCalloutBox();
+              }}
               title="Khung ghi chú nổi bật Spa"
               className="p-1.5 text-brand-800 hover:bg-brand-200/70 rounded transition-colors flex items-center gap-1 text-xs font-medium bg-brand-100/60"
             >
@@ -348,6 +433,7 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
             </button>
             <button
               type="button"
+              onMouseDown={saveSelection}
               onClick={() => executeCommand("insertHorizontalRule")}
               title="Đường phân cách ngang"
               className="p-1.5 text-brand-800 hover:bg-brand-200/70 rounded transition-colors"
@@ -432,6 +518,9 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
             contentEditable
             onInput={handleEditorInput}
             onBlur={handleEditorInput}
+            onKeyUp={saveSelection}
+            onMouseUp={saveSelection}
+            onSelect={saveSelection}
             style={{ minHeight }}
             data-placeholder={placeholder}
             className="wysiwyg-content p-6 focus:outline-none leading-relaxed text-brand-950 prose prose-brand max-w-none overflow-y-auto"

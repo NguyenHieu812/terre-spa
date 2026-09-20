@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import Navbar from "../components/Navbar";
 import { Footer } from "../components/Footer";
 import { Post } from "../types";
-import { getStoredPosts } from "../data/store";
+import { getStoredPosts, TERRE_DATA_SYNCED_EVENT } from "../data/store";
 import {
   Sparkles,
   Search,
@@ -23,12 +23,20 @@ export const PostsPage: React.FC = () => {
     keywords: "bài viết terre spa, cẩm nang spa, bí quyết dưỡng sinh, phục hồi da sau treatment, gội đầu dưỡng sinh đông y",
     canonicalUrl: "https://terre-spa.vercel.app/posts",
   });
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Post[]>(() => getStoredPosts().filter((p) => p.status === "published"));
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    setPosts(getStoredPosts().filter((p) => p.status === "published"));
+    const updatePosts = () => {
+      setPosts(getStoredPosts().filter((p) => p.status === "published"));
+    };
+    updatePosts();
+
+    window.addEventListener(TERRE_DATA_SYNCED_EVENT, updatePosts);
+    return () => {
+      window.removeEventListener(TERRE_DATA_SYNCED_EVENT, updatePosts);
+    };
   }, []);
 
   const categories = [

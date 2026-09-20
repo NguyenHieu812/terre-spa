@@ -1,19 +1,28 @@
-import { CloudflareConfig, Post, Product, AppDataPayload, ServiceCategory } from "../types";
+import { CloudflareConfig, Post, Product, AppDataPayload, ServiceCategory, CustomerReview } from "../types";
 
 export const CLOUDFLARE_STORAGE_KEY = "terre_spa_cloudflare_config";
+
+const DEFAULT_WORKER_URL =
+  ((import.meta as any)?.env?.VITE_CLOUDFLARE_WORKER_URL) ||
+  "https://terre-spa-api.terrespa.workers.dev";
 
 export const getDefaultCloudflareConfig = (): CloudflareConfig => {
   try {
     const saved = localStorage.getItem(CLOUDFLARE_STORAGE_KEY);
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      // If saved workerUrl is empty, use default
+      if (!parsed.workerUrl || !parsed.workerUrl.trim()) {
+        parsed.workerUrl = DEFAULT_WORKER_URL;
+      }
+      return parsed;
     }
   } catch (e) {
     console.warn("Could not read Cloudflare config from LocalStorage", e);
   }
 
   return {
-    workerUrl: "https://terre-spa-api.terrespa.workers.dev",
+    workerUrl: DEFAULT_WORKER_URL,
     apiToken: "",
     kvNamespace: "TERRE_KV",
     autoSync: true,
@@ -58,7 +67,7 @@ export async function testCloudflareConnection(config: CloudflareConfig): Promis
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     const response = await fetch(testEndpoint, {
       method: "GET",
@@ -72,7 +81,7 @@ export async function testCloudflareConnection(config: CloudflareConfig): Promis
     if (response.ok) {
       return {
         success: true,
-        message: `Kết nối Cloudflare Worker thành công! (KV: ${data.hasKV ? "Đã liên kết" : "Chưa bật"})`,
+        message: `Kết nối Cloudflare Worker thành công! (${data.databaseType || (data.hasKV ? "KV Storage" : "Cloudflare")})`,
         details: data,
       };
     } else {
@@ -85,7 +94,7 @@ export async function testCloudflareConnection(config: CloudflareConfig): Promis
     if (error.name === "AbortError") {
       return {
         success: false,
-        message: "Kết nối quá thời gian chờ (10s). Vui lòng kiểm tra lại URL Cloudflare Worker.",
+        message: "Kết nối quá thời gian chờ (8s). Vui lòng kiểm tra lại URL Cloudflare Worker.",
       };
     }
     return {
@@ -96,11 +105,16 @@ export async function testCloudflareConnection(config: CloudflareConfig): Promis
 }
 
 /**
- * Sync all local posts and products to Cloudflare KV/Worker
+ * Sync all local posts, products, services, and reviews to Cloudflare KV/Worker
  */
 export async function syncToCloudflare(
   config: CloudflareConfig,
-  payload: { posts: Post[]; products: Product[]; serviceCategories?: ServiceCategory[] }
+  payload: {
+    posts: Post[];
+    products: Product[];
+    serviceCategories?: ServiceCategory[];
+    reviews?: CustomerReview[];
+  }
 ): Promise<{ success: boolean; message: string; timestamp?: string }> {
   if (!config.workerUrl || !config.workerUrl.trim()) {
     return {
@@ -128,6 +142,7 @@ export async function syncToCloudflare(
         posts: payload.posts,
         products: payload.products,
         serviceCategories: payload.serviceCategories || [],
+        reviews: payload.reviews || [],
         version: "1.0.0",
         timestamp: new Date().toISOString(),
       }),
@@ -139,7 +154,7 @@ export async function syncToCloudflare(
       const ts = data.lastUpdated || new Date().toISOString();
       return {
         success: true,
-        message: `Đã đồng bộ thành công ${payload.posts.length} bài viết, ${payload.products.length} sản phẩm & ${payload.serviceCategories?.length || 0} danh mục dịch vụ lên Cloudflare!`,
+        message: `Đã đồng bộ thành công ${payload.posts.length} bài viết, ${payload.products.length} sản phẩm, ${payload.serviceCategories?.length || 0} danh mục dịch vụ & ${payload.reviews?.length || 0} đánh giá lên Cloudflare!`,
         timestamp: ts,
       };
     } else {
@@ -157,7 +172,7 @@ export async function syncToCloudflare(
 }
 
 /**
- * Fetch all posts, products and services from Cloudflare Worker
+ * Fetch all posts, products, services, and reviews from Cloudflare Worker
  */
 export async function fetchFromCloudflare(
   config: CloudflareConfig
@@ -180,10 +195,15 @@ export async function fetchFromCloudflare(
       headers["Authorization"] = `Bearer ${config.apiToken.trim()}`;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch(syncEndpoint, {
       method: "GET",
       headers,
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const data = await response.json().catch(() => ({}));
 
@@ -194,10 +214,11 @@ export async function fetchFromCloudflare(
           posts: Array.isArray(data.posts) ? data.posts : [],
           products: Array.isArray(data.products) ? data.products : [],
           serviceCategories: Array.isArray(data.serviceCategories) ? data.serviceCategories : [],
+          reviews: Array.isArray(data.reviews) ? data.reviews : [],
           version: data.version || "1.0.0",
           lastUpdated: data.lastUpdated || new Date().toISOString(),
         },
-        message: `Đã tải về ${data.posts?.length || 0} bài viết, ${data.products?.length || 0} sản phẩm & ${data.serviceCategories?.length || 0} danh mục dịch vụ từ Cloudflare.`,
+        message: `Đã tải về ${data.posts?.length || 0} bài viết, ${data.products?.length || 0} sản phẩm, ${data.serviceCategories?.length || 0} danh mục dịch vụ & ${data.reviews?.length || 0} đánh giá từ Cloudflare.`,
       };
     } else {
       return {
@@ -211,4 +232,23 @@ export async function fetchFromCloudflare(
       message: `Lỗi kết nối tải dữ liệu: ${error.message}`,
     };
   }
+}
+
+/**
+ * Silently fetch latest app data from Cloudflare Worker without throwing
+ */
+export async function fetchLatestAppDataSilently(
+  customConfig?: CloudflareConfig
+): Promise<AppDataPayload | null> {
+  try {
+    const config = customConfig || getDefaultCloudflareConfig();
+    if (!config.workerUrl) return null;
+    const res = await fetchFromCloudflare(config);
+    if (res.success && res.data) {
+      return res.data;
+    }
+  } catch (e) {
+    console.debug("Silent Cloudflare fetch skipped or failed", e);
+  }
+  return null;
 }

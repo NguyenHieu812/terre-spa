@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Navbar from "../components/Navbar";
 import { Footer } from "../components/Footer";
 import { Product } from "../types";
-import { getStoredProducts } from "../data/store";
+import { getStoredProducts, TERRE_DATA_SYNCED_EVENT } from "../data/store";
 import {
   Search,
   ShoppingBag,
@@ -23,7 +23,7 @@ export const ProductsPage: React.FC = () => {
     keywords: "sản phẩm terre spa, dầu gội thảo dược, tinh dầu massage, kem dưỡng phục hồi, mỹ phẩm spa",
     canonicalUrl: "https://terre-spa.vercel.app/products",
   });
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => getStoredProducts());
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -35,7 +35,15 @@ export const ProductsPage: React.FC = () => {
   const [customerAddress, setCustomerAddress] = useState("");
 
   useEffect(() => {
-    setProducts(getStoredProducts());
+    const updateProducts = () => {
+      setProducts(getStoredProducts());
+    };
+    updateProducts();
+
+    window.addEventListener(TERRE_DATA_SYNCED_EVENT, updateProducts);
+    return () => {
+      window.removeEventListener(TERRE_DATA_SYNCED_EVENT, updateProducts);
+    };
   }, []);
 
   const categories = [

@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import Navbar from "../components/Navbar";
 import { Footer } from "../components/Footer";
 import { Post } from "../types";
-import { getStoredPosts } from "../data/store";
+import { getStoredPosts, TERRE_DATA_SYNCED_EVENT } from "../data/store";
 import {
   Calendar,
   Clock,
@@ -24,28 +24,23 @@ export const PostDetailPage: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   usePageSEO({
-    title: post ? `${post.title} | Terre Spa` : "Chi tiết bài viết | Terre Spa",
-    description: post ? post.excerpt : "Đọc bài viết chia sẻ kiến thức chăm sóc sức khỏe và làm đẹp tại Terre Spa.",
-    keywords: post?.tags?.join(", "),
+    title: post ? `${post.title} | Terre Spa` : "Chi Tiết Bài Viết | Terre Spa",
+    description: post ? post.excerpt : "Khám phá bài viết dưỡng sinh, làm đẹp và chăm sóc sức khỏe toàn diện tại Terre Spa.",
+    keywords: post ? `${post.category}, ${post.tags?.join(", ") || ""}, Terre Spa dưỡng sinh` : "spa dưỡng sinh, bí quyết chăm sóc da",
+    canonicalUrl: `https://terre-spa.vercel.app/posts/${id}`,
     ogImage: post?.coverImage,
-    ogType: "article",
-    canonicalUrl: post ? `https://terre-spa.vercel.app/posts/${post.slug || post.id}` : undefined,
     structuredData: post
       ? {
           "@context": "https://schema.org",
-          "@type": "Article",
+          "@type": "BlogPosting",
           "headline": post.title,
-          "description": post.excerpt,
           "image": [post.coverImage],
           "datePublished": post.publishedAt,
           "dateModified": post.updatedAt || post.publishedAt,
-          "author": [
-            {
-              "@type": "Person",
-              "name": post.author.name,
-              "jobTitle": post.author.role || "Chuyên viên Terre Spa",
-            },
-          ],
+          "author": {
+            "@type": "Person",
+            "name": post.author?.name || "Terre Spa",
+          },
           "publisher": {
             "@type": "Organization",
             "name": "Terre Spa",
@@ -59,17 +54,26 @@ export const PostDetailPage: React.FC = () => {
   });
 
   useEffect(() => {
-    const allPosts = getStoredPosts();
-    const found = allPosts.find((p) => p.id === id || p.slug === id);
-    if (found) {
-      setPost(found);
-      // Related posts
-      const related = allPosts
-        .filter((p) => p.id !== found.id && p.category === found.category)
-        .slice(0, 3);
-      setRelatedPosts(related.length > 0 ? related : allPosts.filter((p) => p.id !== found.id).slice(0, 3));
-    }
+    const loadPostData = () => {
+      const allPosts = getStoredPosts();
+      const found = allPosts.find((p) => p.id === id || p.slug === id);
+      if (found) {
+        setPost(found);
+        // Related posts
+        const related = allPosts
+          .filter((p) => p.id !== found.id && p.category === found.category)
+          .slice(0, 3);
+        setRelatedPosts(related.length > 0 ? related : allPosts.filter((p) => p.id !== found.id).slice(0, 3));
+      }
+    };
+
+    loadPostData();
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    window.addEventListener(TERRE_DATA_SYNCED_EVENT, loadPostData);
+    return () => {
+      window.removeEventListener(TERRE_DATA_SYNCED_EVENT, loadPostData);
+    };
   }, [id]);
 
   const handleShare = () => {

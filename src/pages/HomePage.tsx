@@ -4,7 +4,7 @@ import { format, addDays } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 
 import { experienceSlides, beforeAfterStories } from "../data/content";
-import { getStoredServices, getStoredReviews } from "../data/store";
+import { getStoredServices, getStoredReviews, TERRE_DATA_SYNCED_EVENT } from "../data/store";
 import { ServiceCategory, CustomerReview } from "../types";
 import { ServiceCarousel } from "../components/ServiceCarousel";
 import { FeedbackCarousel } from "../components/FeedbackCarousel";
@@ -38,8 +38,16 @@ const HomePage: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setServiceCategories(getStoredServices());
-    setReviews(getStoredReviews());
+    const updateHomeData = () => {
+      setServiceCategories(getStoredServices());
+      setReviews(getStoredReviews());
+    };
+    updateHomeData();
+
+    window.addEventListener(TERRE_DATA_SYNCED_EVENT, updateHomeData);
+    return () => {
+      window.removeEventListener(TERRE_DATA_SYNCED_EVENT, updateHomeData);
+    };
   }, []);
 
   useEffect(() => {

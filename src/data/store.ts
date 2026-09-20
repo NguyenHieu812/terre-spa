@@ -3,6 +3,7 @@ import {
   getDefaultCloudflareConfig,
   saveCloudflareConfig,
   syncToCloudflare,
+  fetchFromCloudflare,
 } from "../services/cloudflareService";
 
 import heroBg from "../assets/images/spa_hero_bg_1781666735594.jpg";
@@ -307,6 +308,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
+export const TERRE_DATA_SYNCED_EVENT = "terre_data_synced";
+
 // Helper functions for Services & Categories
 export const getStoredServices = (): ServiceCategory[] => {
   try {
@@ -325,7 +328,12 @@ export const saveStoredServices = (serviceCategories: ServiceCategory[]): void =
   try {
     localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(serviceCategories));
     // Trigger auto-sync to Cloudflare if enabled
-    checkAndAutoSync({ posts: getStoredPosts(), products: getStoredProducts(), serviceCategories });
+    checkAndAutoSync({
+      posts: getStoredPosts(),
+      products: getStoredProducts(),
+      serviceCategories,
+      reviews: getStoredReviews(),
+    });
   } catch (e: any) {
     console.error("Failed to save services to LocalStorage", e);
     if (e.name === "QuotaExceededError" || e.code === 22) {
@@ -352,7 +360,12 @@ export const saveStoredPosts = (posts: Post[]): void => {
   try {
     localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
     // Trigger auto-sync to Cloudflare if enabled
-    checkAndAutoSync({ posts, products: getStoredProducts(), serviceCategories: getStoredServices() });
+    checkAndAutoSync({
+      posts,
+      products: getStoredProducts(),
+      serviceCategories: getStoredServices(),
+      reviews: getStoredReviews(),
+    });
   } catch (e: any) {
     console.error("Failed to save posts to LocalStorage", e);
     if (e.name === "QuotaExceededError" || e.code === 22) {
@@ -379,7 +392,12 @@ export const saveStoredProducts = (products: Product[]): void => {
   try {
     localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
     // Trigger auto-sync to Cloudflare if enabled
-    checkAndAutoSync({ posts: getStoredPosts(), products, serviceCategories: getStoredServices() });
+    checkAndAutoSync({
+      posts: getStoredPosts(),
+      products,
+      serviceCategories: getStoredServices(),
+      reviews: getStoredReviews(),
+    });
   } catch (e: any) {
     console.error("Failed to save products to LocalStorage", e);
     if (e.name === "QuotaExceededError" || e.code === 22) {
@@ -462,6 +480,13 @@ export const getStoredReviews = (): CustomerReview[] => {
 export const saveStoredReviews = (reviews: CustomerReview[]): void => {
   try {
     localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
+    // Trigger auto-sync to Cloudflare if enabled
+    checkAndAutoSync({
+      posts: getStoredPosts(),
+      products: getStoredProducts(),
+      serviceCategories: getStoredServices(),
+      reviews,
+    });
   } catch (e: any) {
     console.error("Failed to save reviews to LocalStorage", e);
     if (e.name === "QuotaExceededError" || e.code === 22) {
@@ -471,9 +496,14 @@ export const saveStoredReviews = (reviews: CustomerReview[]): void => {
 };
 
 /**
- * Auto sync helper
+ * Auto sync helper - Pushes local changes up to Cloudflare
  */
-async function checkAndAutoSync(payload: { posts: Post[]; products: Product[]; serviceCategories?: ServiceCategory[] }) {
+async function checkAndAutoSync(payload: {
+  posts: Post[];
+  products: Product[];
+  serviceCategories?: ServiceCategory[];
+  reviews?: CustomerReview[];
+}) {
   const config = getDefaultCloudflareConfig();
   if (config.workerUrl && config.autoSync) {
     try {
@@ -489,3 +519,61 @@ async function checkAndAutoSync(payload: { posts: Post[]; products: Product[]; s
     }
   }
 }
+
+/**
+ * Background silent fetcher & synchronizer
+ * Pulls latest published data from Cloudflare Worker and updates LocalStorage + active views
+ */
+let isSyncInProgress = false;
+
+export const syncWithCloudflareSilently = async (): Promise<boolean> => {
+  if (isSyncInProgress) return false;
+  try {
+    isSyncInProgress = true;
+    const config = getDefaultCloudflareConfig();
+    if (!config.workerUrl) return false;
+
+    const res = await fetchFromCloudflare(config);
+    if (res.success && res.data) {
+      const { posts, products, serviceCategories, reviews } = res.data;
+      let hasUpdates = false;
+
+      if (Array.isArray(posts) && posts.length > 0) {
+        localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
+        hasUpdates = true;
+      }
+      if (Array.isArray(products) && products.length > 0) {
+        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+        hasUpdates = true;
+      }
+      if (Array.isArray(serviceCategories) && serviceCategories.length > 0) {
+        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(serviceCategories));
+        hasUpdates = true;
+      }
+      if (Array.isArray(reviews) && reviews.length > 0) {
+        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
+        hasUpdates = true;
+      }
+
+      if (hasUpdates) {
+        window.dispatchEvent(
+          new CustomEvent(TERRE_DATA_SYNCED_EVENT, {
+            detail: {
+              posts,
+              products,
+              serviceCategories,
+              reviews,
+              timestamp: new Date().toISOString(),
+            },
+          })
+        );
+      }
+      return true;
+    }
+  } catch (e) {
+    console.debug("Silent background sync from Cloudflare skipped/offline", e);
+  } finally {
+    isSyncInProgress = false;
+  }
+  return false;
+};

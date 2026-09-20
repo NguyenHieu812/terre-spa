@@ -10,6 +10,8 @@ import {
   saveStoredServices,
   getStoredReviews,
   saveStoredReviews,
+  TERRE_DATA_SYNCED_EVENT,
+  syncWithCloudflareSilently,
 } from "../data/store";
 import {
   getDefaultCloudflareConfig,
@@ -54,6 +56,7 @@ import {
   LogOut,
   UserCheck,
   CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 
 type AdminTab = "dashboard" | "posts" | "products" | "services" | "reviews" | "users" | "cloudflare";
@@ -84,14 +87,30 @@ const AdminPage: React.FC = () => {
   const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
   const [passwordChangeMsg, setPasswordChangeMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Load initial data
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+
+  // Load initial data and subscribe to realtime sync events
   useEffect(() => {
-    setPosts(getStoredPosts());
-    setProducts(getStoredProducts());
-    setServices(getStoredServices());
-    setReviews(getStoredReviews());
-    setCloudflareConfig(getDefaultCloudflareConfig());
+    const loadAll = () => {
+      setPosts(getStoredPosts());
+      setProducts(getStoredProducts());
+      setServices(getStoredServices());
+      setReviews(getStoredReviews());
+      setCloudflareConfig(getDefaultCloudflareConfig());
+    };
+    loadAll();
+
+    window.addEventListener(TERRE_DATA_SYNCED_EVENT, loadAll);
+    return () => {
+      window.removeEventListener(TERRE_DATA_SYNCED_EVENT, loadAll);
+    };
   }, []);
+
+  const handleManualSyncNow = async () => {
+    setIsManualSyncing(true);
+    await syncWithCloudflareSilently();
+    setTimeout(() => setIsManualSyncing(false), 600);
+  };
 
   const refreshUsers = () => {
     const updatedUsers = getStoredAdminUsers();
@@ -338,7 +357,22 @@ const AdminPage: React.FC = () => {
           </div>
 
           {/* User Profile & Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Realtime Sync Status & Refresh Button */}
+            <button
+              type="button"
+              onClick={handleManualSyncNow}
+              disabled={isManualSyncing}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-brand-100/70 hover:bg-brand-100 text-brand-800 border border-brand-200 rounded-lg text-xs font-medium transition-colors"
+              title="Dữ liệu tự động đồng bộ thời gian thực với Cloudflare. Bấm để kiểm tra và làm mới ngay lập tức."
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-brand-600 ${isManualSyncing ? "animate-spin text-brand-700" : ""}`} />
+              <span className="hidden sm:inline">
+                {isManualSyncing ? "Đang đồng bộ..." : "Đồng bộ Realtime"}
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Tự động đồng bộ đang bật" />
+            </button>
+
             <Link
               to="/"
               target="_blank"

@@ -7,10 +7,14 @@ import PostsPage from "./pages/PostsPage";
 import PostDetailPage from "./pages/PostDetailPage";
 import AdminPage from "./pages/AdminPage";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { useAutoDataSync } from "./hooks/useAutoDataSync";
 
-const AppRouter: React.FC = () => {
+const AppContent: React.FC = () => {
+  // Automatically syncs with Cloudflare backend on mount, focus, and every 60s
+  useAutoDataSync();
+
   return (
-    <BrowserRouter>
+    <>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -21,8 +25,17 @@ const AppRouter: React.FC = () => {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
+    </>
+  );
+};
+
+const AppRouter: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 };
 
 export default AppRouter;
+
