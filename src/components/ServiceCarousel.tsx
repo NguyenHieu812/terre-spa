@@ -52,17 +52,19 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
     return () => window.removeEventListener("resize", updateSlidesPerView);
   }, [updateSlidesPerView]);
 
+  const services = category?.services || [];
+
   const handleControl = React.useCallback(
     (direction: "prev" | "next") => {
       setStartIndex((prev) => {
-        const maxIndex = Math.max(0, category.services.length - slidesPerView);
+        const maxIndex = Math.max(0, services.length - slidesPerView);
         if (direction === "prev") {
           return prev - slidesPerView < 0 ? maxIndex : prev - slidesPerView;
         }
         return prev + slidesPerView > maxIndex ? 0 : prev + slidesPerView;
       });
     },
-    [category.services.length, slidesPerView]
+    [services.length, slidesPerView]
   );
 
   React.useEffect(() => {
@@ -70,12 +72,12 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
     const child = scrollRef.current.children[startIndex] as HTMLElement | undefined;
     if (!child) return;
     scrollRef.current.scrollTo({ left: child.offsetLeft, behavior: "smooth" });
-  }, [startIndex, slidesPerView, category.services.length]);
+  }, [startIndex, slidesPerView, services.length]);
 
   React.useEffect(() => {
-    const maxIndex = Math.max(0, category.services.length - slidesPerView);
+    const maxIndex = Math.max(0, services.length - slidesPerView);
     setStartIndex((prev) => Math.min(prev, maxIndex));
-  }, [slidesPerView, category.services.length]);
+  }, [slidesPerView, services.length]);
 
   React.useEffect(() => {
     setStartIndex(0);
@@ -98,6 +100,7 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
         </div>
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => handleControl("prev")}
             className="w-10 h-10 flex items-center justify-center rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors bg-white shadow-sm"
             aria-label="Dịch vụ trước"
@@ -105,6 +108,7 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
+            type="button"
             onClick={() => handleControl("next")}
             className="w-10 h-10 flex items-center justify-center rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 hover:text-brand-900 transition-colors bg-white shadow-sm"
             aria-label="Dịch vụ tiếp theo"
@@ -116,7 +120,12 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
 
       <div className="relative">
         <div ref={scrollRef} className="flex gap-6 overflow-x-auto hide-scrollbar snap-x snap-mandatory scroll-smooth pb-2">
-          {category.services.map((service) => (
+          {services.length === 0 ? (
+            <div className="w-full text-center py-8 text-brand-400 text-xs italic">
+              Đang cập nhật các gói dịch vụ...
+            </div>
+          ) : (
+            services.map((service) => (
             <motion.div
               key={service.id}
               className="relative shrink-0 bg-white p-6 border border-brand-100 flex flex-col justify-between group rounded-2xl snap-start shadow-xs hover:shadow-md transition-shadow"
@@ -138,7 +147,7 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({ category, onSe
                 <span>Tìm hiểu thêm</span>
               </div>
             </motion.div>
-          ))}
+          )))}
         </div>
       </div>
     </div>

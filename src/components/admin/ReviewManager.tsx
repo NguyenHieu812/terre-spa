@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CustomerReview, ServiceCategory } from "../../types";
+import { compressImageFile } from "../../utils/imageUtils";
 import {
   Plus,
   Search,
@@ -61,25 +62,19 @@ export const ReviewManager: React.FC<ReviewManagerProps> = ({
     setTimeout(() => setToastMessage(""), 3000);
   };
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Dung lượng ảnh tối đa là 5MB. Vui lòng chọn file nhẹ hơn!");
-      return;
+    try {
+      const result = await compressImageFile(file, 400, 400, 0.8);
+      setFormData((prev) => ({
+        ...prev,
+        avatar: result,
+      }));
+      showToast("Đã tải ảnh đại diện thành công!");
+    } catch (err) {
+      alert("Không thể tải ảnh. Vui lòng thử lại!");
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setFormData((prev) => ({
-          ...prev,
-          avatar: result,
-        }));
-        showToast("Đã tải ảnh đại diện thành công!");
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   // Flatten all service names for quick selection

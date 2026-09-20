@@ -135,10 +135,16 @@ const HomePage: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      const result = await response.json();
+      
+      let result: any = {};
+      try {
+        result = await response.json();
+      } catch {
+        result = {};
+      }
 
       if (!response.ok) {
-        throw new Error(result.details || result.error || "Có lỗi xảy ra.");
+        throw new Error(result.details || result.error || "Không thể kết nối lưu dữ liệu. Quý khách vui lòng gọi hotline 0569 08 7777 để được hỗ trợ nhanh nhất!");
       }
 
       setStatus({ type: "success", message: "Cảm ơn bạn! Lịch hẹn đã được xác nhận thành công." });
@@ -147,7 +153,7 @@ const HomePage: React.FC = () => {
       console.error(error);
       setStatus({
         type: "error",
-        message: error.message || "Không thể kết nối lưu dữ liệu. Vui lòng thử lại sau.",
+        message: error.message || "Không thể kết nối lưu dữ liệu. Quý khách vui lòng gọi hotline 0569 08 7777 để đặt lịch trực tiếp.",
       });
     } finally {
       setLoading(false);

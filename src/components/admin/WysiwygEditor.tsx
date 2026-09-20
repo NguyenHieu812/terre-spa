@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { compressImageFile } from "../../utils/imageUtils";
 import {
   Bold,
   Italic,
@@ -25,6 +26,7 @@ import {
   Check,
   X,
   Type,
+  Upload,
 } from "lucide-react";
 
 interface WysiwygEditorProps {
@@ -112,9 +114,26 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     handleEditorInput();
   };
 
-  const handleAddImage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!imageUrl) return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const result = await compressImageFile(file);
+      setImageUrl(result);
+    } catch (err) {
+      alert("Không thể tải file ảnh này. Vui lòng thử lại!");
+    }
+  };
+
+  const handleAddImage = (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!imageUrl.trim()) {
+      alert("Vui lòng tải ảnh lên hoặc nhập đường dẫn ảnh (URL)!");
+      return;
+    }
 
     let imgHtml = `<figure class="my-6 text-center">
       <img src="${imageUrl}" alt="${imageAlt || "Hình ảnh bài viết Terre Spa"}" class="rounded-xl mx-auto shadow-md max-h-[500px] object-cover w-full" />`;
@@ -130,11 +149,14 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     setShowImageModal(false);
   };
 
-  const handleAddLink = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!linkUrl) return;
+  const handleAddLink = (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!linkUrl.trim()) return;
 
-    const url = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
+    const url = linkUrl.startsWith("http") || linkUrl.startsWith("/") ? linkUrl : `https://${linkUrl}`;
     const text = linkText || url;
     const linkHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-brand-700 underline font-medium hover:text-brand-900">${text}</a> `;
 
@@ -452,17 +474,41 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleAddImage} className="space-y-4">
+            <div className="space-y-4">
+              {/* Upload file from device */}
+              <div>
+                <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider mb-1.5">
+                  1. Tải ảnh từ thiết bị
+                </label>
+                <label className="cursor-pointer flex items-center justify-center gap-2 px-3 py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-900 rounded-xl text-xs font-semibold border border-brand-200 transition-colors">
+                  <Upload className="w-3.5 h-3.5 text-brand-700" />
+                  <span>Chọn tệp ảnh từ máy tính / điện thoại</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </label>
+              </div>
+
+              {/* Or URL input */}
               <div>
                 <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider mb-1">
-                  Đường dẫn ảnh (URL) *
+                  2. Hoặc dán đường dẫn ảnh (URL)
                 </label>
                 <input
-                  type="url"
-                  required
+                  type="text"
                   placeholder="https://images.unsplash.com/... hoặc link ảnh"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddImage();
+                    }
+                  }}
                   className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 />
               </div>
@@ -476,6 +522,13 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                   placeholder="Vd: Không gian gội đầu dưỡng sinh Terre Spa"
                   value={imageAlt}
                   onChange={(e) => setImageAlt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddImage();
+                    }
+                  }}
                   className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 />
               </div>
@@ -489,6 +542,13 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                   placeholder="Vd: Ảnh 1: Không gian phòng trị liệu thảo dược"
                   value={imageCaption}
                   onChange={(e) => setImageCaption(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddImage();
+                    }
+                  }}
                   className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 />
               </div>
@@ -516,13 +576,14 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                   Hủy
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={() => handleAddImage()}
                   className="px-5 py-2 text-xs font-medium bg-brand-800 hover:bg-brand-900 text-white rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
                 >
                   <Check className="w-3.5 h-3.5" /> Chèn ảnh
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
@@ -544,17 +605,23 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleAddLink} className="space-y-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider mb-1">
                   Đường dẫn đích (URL) *
                 </label>
                 <input
                   type="text"
-                  required
                   placeholder="https://terrespa.vn hoặc /#book"
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddLink();
+                    }
+                  }}
                   className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 />
               </div>
@@ -568,6 +635,13 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                   placeholder="Vd: Đặt lịch hẹn trải nghiệm tại Terre Spa"
                   value={linkText}
                   onChange={(e) => setLinkText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddLink();
+                    }
+                  }}
                   className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 />
               </div>
@@ -581,13 +655,14 @@ export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
                   Hủy
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={() => handleAddLink()}
                   className="px-5 py-2 text-xs font-medium bg-brand-800 hover:bg-brand-900 text-white rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
                 >
                   <Check className="w-3.5 h-3.5" /> Chèn link
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

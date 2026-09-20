@@ -311,9 +311,9 @@ export const INITIAL_PRODUCTS: Product[] = [
 export const getStoredServices = (): ServiceCategory[] => {
   try {
     const saved = localStorage.getItem(SERVICES_STORAGE_KEY);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.warn("Failed to load services from LocalStorage", e);
@@ -326,8 +326,11 @@ export const saveStoredServices = (serviceCategories: ServiceCategory[]): void =
     localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(serviceCategories));
     // Trigger auto-sync to Cloudflare if enabled
     checkAndAutoSync({ posts: getStoredPosts(), products: getStoredProducts(), serviceCategories });
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to save services to LocalStorage", e);
+    if (e.name === "QuotaExceededError" || e.code === 22) {
+      alert("Bộ nhớ trình duyệt đã đầy do kích thước ảnh quá lớn. Vui lòng giảm dung lượng ảnh!");
+    }
   }
 };
 
@@ -335,9 +338,9 @@ export const saveStoredServices = (serviceCategories: ServiceCategory[]): void =
 export const getStoredPosts = (): Post[] => {
   try {
     const saved = localStorage.getItem(POSTS_STORAGE_KEY);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.warn("Failed to load posts from LocalStorage", e);
@@ -350,8 +353,11 @@ export const saveStoredPosts = (posts: Post[]): void => {
     localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
     // Trigger auto-sync to Cloudflare if enabled
     checkAndAutoSync({ posts, products: getStoredProducts(), serviceCategories: getStoredServices() });
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to save posts to LocalStorage", e);
+    if (e.name === "QuotaExceededError" || e.code === 22) {
+      alert("Bộ nhớ trình duyệt đã đầy do ảnh bài viết quá lớn. Vui lòng nén ảnh hoặc chọn ảnh nhẹ hơn!");
+    }
   }
 };
 
@@ -359,9 +365,9 @@ export const saveStoredPosts = (posts: Post[]): void => {
 export const getStoredProducts = (): Product[] => {
   try {
     const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.warn("Failed to load products from LocalStorage", e);
@@ -374,8 +380,11 @@ export const saveStoredProducts = (products: Product[]): void => {
     localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
     // Trigger auto-sync to Cloudflare if enabled
     checkAndAutoSync({ posts: getStoredPosts(), products, serviceCategories: getStoredServices() });
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to save products to LocalStorage", e);
+    if (e.name === "QuotaExceededError" || e.code === 22) {
+      alert("Bộ nhớ trình duyệt đã đầy do ảnh sản phẩm quá lớn. Vui lòng nén ảnh hoặc chọn ảnh nhẹ hơn!");
+    }
   }
 };
 
@@ -440,9 +449,9 @@ export const INITIAL_REVIEWS: CustomerReview[] = [
 export const getStoredReviews = (): CustomerReview[] => {
   try {
     const saved = localStorage.getItem(REVIEWS_STORAGE_KEY);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.warn("Failed to load reviews from LocalStorage", e);
@@ -453,8 +462,11 @@ export const getStoredReviews = (): CustomerReview[] => {
 export const saveStoredReviews = (reviews: CustomerReview[]): void => {
   try {
     localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to save reviews to LocalStorage", e);
+    if (e.name === "QuotaExceededError" || e.code === 22) {
+      alert("Bộ nhớ trình duyệt đã đầy. Vui lòng giảm bớt dung lượng ảnh đánh giá!");
+    }
   }
 };
 

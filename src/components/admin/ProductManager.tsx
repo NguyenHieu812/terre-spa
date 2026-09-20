@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Product } from "../../types";
+import { compressImageFile } from "../../utils/imageUtils";
 import {
   Plus,
   Search,
@@ -126,29 +127,23 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingProduct) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Dung lượng ảnh tối đa là 5MB. Vui lòng chọn file nhẹ hơn!");
-      return;
+    try {
+      const result = await compressImageFile(file);
+      setEditingProduct({
+        ...editingProduct,
+        thumbnail: result,
+      });
+      showToast("Đã tải ảnh lên thành công!");
+    } catch (err) {
+      alert("Không thể tải ảnh. Vui lòng thử lại!");
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setEditingProduct({
-          ...editingProduct,
-          thumbnail: result,
-        });
-        showToast("Đã tải ảnh lên thành công!");
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!editingProduct || !editingProduct.name.trim()) {
       alert("Vui lòng nhập tên sản phẩm.");
       return;
@@ -197,6 +192,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-brand-200">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setEditingProduct(null)}
               className="p-2 hover:bg-brand-100 rounded-lg text-brand-800 transition-colors flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider"
             >

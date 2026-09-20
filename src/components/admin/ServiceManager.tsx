@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ServiceCategory, SpaService } from "../../types";
+import { compressImageFile } from "../../utils/imageUtils";
 import {
   Plus,
   Search,
@@ -74,46 +75,34 @@ export const ServiceManager: React.FC<ServiceManagerProps> = ({
     setTimeout(() => setToastMessage(""), 3500);
   };
 
-  const handleCategoryFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCategoryFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingCategory) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Dung lượng ảnh tối đa là 5MB. Vui lòng chọn file nhẹ hơn!");
-      return;
+    try {
+      const result = await compressImageFile(file);
+      setEditingCategory({
+        ...editingCategory,
+        image: result,
+      });
+      showToast("Đã tải ảnh danh mục thành công!");
+    } catch (err) {
+      alert("Không thể tải ảnh. Vui lòng thử lại!");
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setEditingCategory({
-          ...editingCategory,
-          image: result,
-        });
-        showToast("Đã tải ảnh danh mục thành công!");
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleServiceFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleServiceFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingService) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Dung lượng ảnh tối đa là 5MB. Vui lòng chọn file nhẹ hơn!");
-      return;
+    try {
+      const result = await compressImageFile(file);
+      setEditingService({
+        ...editingService,
+        image: result,
+      });
+      showToast("Đã tải ảnh dịch vụ thành công!");
+    } catch (err) {
+      alert("Không thể tải ảnh. Vui lòng thử lại!");
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setEditingService({
-          ...editingService,
-          image: result,
-        });
-        showToast("Đã tải ảnh dịch vụ thành công!");
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   // Service Handlers
@@ -136,8 +125,8 @@ export const ServiceManager: React.FC<ServiceManagerProps> = ({
     setIsCreatingService(false);
   };
 
-  const handleSaveService = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveService = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!editingService || !editingService.name.trim()) {
       alert("Vui lòng nhập tên gói dịch vụ.");
       return;
@@ -197,8 +186,8 @@ export const ServiceManager: React.FC<ServiceManagerProps> = ({
     setIsCreatingCategory(false);
   };
 
-  const handleSaveCategory = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveCategory = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!editingCategory || !editingCategory.title.trim()) {
       alert("Vui lòng nhập tên danh mục dịch vụ.");
       return;
@@ -239,6 +228,7 @@ export const ServiceManager: React.FC<ServiceManagerProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-brand-200">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setEditingService(null)}
               className="p-2 hover:bg-brand-100 rounded-lg text-brand-800 transition-colors flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider"
             >
@@ -418,6 +408,7 @@ export const ServiceManager: React.FC<ServiceManagerProps> = ({
         <div className="flex items-center justify-between pb-4 border-b border-brand-200">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setEditingCategory(null)}
               className="p-2 hover:bg-brand-100 rounded-lg text-brand-800 transition-colors flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider"
             >

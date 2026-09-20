@@ -64,8 +64,9 @@ export const FeedbackCarousel: React.FC<FeedbackCarouselProps> = ({ stories }) =
     return `calc((100% - ${(visibleCount - 1) * gap}px) / ${visibleCount})`;
   }, [visibleCount]);
 
-  const totalDots = Math.ceil(stories.length / visibleCount);
-  const currentDot = Math.floor(startIndex / visibleCount);
+  const safeVisible = Math.max(1, visibleCount);
+  const totalDots = Math.max(0, Math.ceil((stories?.length || 0) / safeVisible));
+  const currentDot = Math.floor(startIndex / safeVisible);
 
   return (
     <div className="relative px-2 py-4">

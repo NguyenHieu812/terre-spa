@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Post } from "../../types";
 import { WysiwygEditor } from "./WysiwygEditor";
+import { compressImageFile } from "../../utils/imageUtils";
 import {
   Plus,
   Search,
@@ -127,29 +128,23 @@ export const PostManager: React.FC<PostManagerProps> = ({
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingPost) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Dung lượng ảnh tối đa là 5MB. Vui lòng chọn file nhẹ hơn!");
-      return;
+    try {
+      const result = await compressImageFile(file);
+      setEditingPost({
+        ...editingPost,
+        coverImage: result,
+      });
+      showToast("Đã tải ảnh bài viết thành công!");
+    } catch (err) {
+      alert("Không thể tải ảnh. Vui lòng thử lại với ảnh khác!");
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setEditingPost({
-          ...editingPost,
-          coverImage: result,
-        });
-        showToast("Đã tải ảnh bài viết thành công!");
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!editingPost || !editingPost.title.trim()) {
       alert("Vui lòng nhập tiêu đề bài viết.");
       return;
@@ -193,6 +188,7 @@ export const PostManager: React.FC<PostManagerProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-brand-200">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setEditingPost(null)}
               className="p-2 hover:bg-brand-100 rounded-lg text-brand-800 transition-colors flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider"
             >
@@ -227,7 +223,7 @@ export const PostManager: React.FC<PostManagerProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content Area (2 cols) */}
           <div className="lg:col-span-2 space-y-6">
             {/* Title */}
@@ -546,7 +542,7 @@ export const PostManager: React.FC<PostManagerProps> = ({
               </div>
             </div>
           </div>
-        </form>
+        </div>
       </div>
     );
   }
