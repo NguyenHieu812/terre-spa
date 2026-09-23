@@ -1132,60 +1132,99 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
         triggerFullAutoSync(true);
       }
 
-      // If local was modified at or after server's data timestamp, push local to cloud instead of overwriting
-      if (lastLocalMutation > 0 && serverTimestamp > 0 && serverTimestamp <= lastLocalMutation) {
-        console.debug("Local changes are newer than Cloudflare. Pushing local to cloud instead of overwriting...");
+      // Smart Union & Merge: Ensure local items created by the user are never overwritten or lost!
+      const currentLocalProducts = getStoredProducts();
+      const serverProductMap = new Map((filteredProducts || []).map((p) => [p.id, p]));
+      const finalProducts = [...(filteredProducts || [])];
+      let hasLocalOnlyProducts = false;
+
+      for (const lp of currentLocalProducts) {
+        if (!deletedProductIds.has(lp.id) && !serverProductMap.has(lp.id)) {
+          finalProducts.push(lp);
+          hasLocalOnlyProducts = true;
+        }
+      }
+
+      const currentLocalPosts = getStoredPosts();
+      const serverPostMap = new Map((filteredPosts || []).map((p) => [p.id, p]));
+      const finalPosts = [...(filteredPosts || [])];
+      let hasLocalOnlyPosts = false;
+
+      for (const lp of currentLocalPosts) {
+        if (!deletedPostIds.has(lp.id) && !serverPostMap.has(lp.id)) {
+          finalPosts.push(lp);
+          hasLocalOnlyPosts = true;
+        }
+      }
+
+      const currentLocalServices = getStoredServices();
+      const serverCatMap = new Map((filteredServices || []).map((c) => [c.id, c]));
+      const finalServices = [...(filteredServices || [])];
+      let hasLocalOnlyServices = false;
+
+      for (const lc of currentLocalServices) {
+        if (!deletedServiceIds.has(lc.id) && !serverCatMap.has(lc.id)) {
+          finalServices.push(lc);
+          hasLocalOnlyServices = true;
+        }
+      }
+
+      const currentLocalOrders = getStoredOrders();
+      const serverOrderMap = new Map((filteredOrders || []).map((o) => [o.id, o]));
+      const finalOrders = [...(filteredOrders || [])];
+      let hasLocalOnlyOrders = false;
+
+      for (const lo of currentLocalOrders) {
+        if (!deletedOrderIds.has(lo.id) && !serverOrderMap.has(lo.id)) {
+          finalOrders.push(lo);
+          hasLocalOnlyOrders = true;
+        }
+      }
+
+      const currentLocalCoupons = getStoredCoupons();
+      const serverCouponMap = new Map((filteredCoupons || []).map((c) => [c.id, c]));
+      const finalCoupons = [...(filteredCoupons || [])];
+      let hasLocalOnlyCoupons = false;
+
+      for (const lc of currentLocalCoupons) {
+        if (!serverCouponMap.has(lc.id)) {
+          finalCoupons.push(lc);
+          hasLocalOnlyCoupons = true;
+        }
+      }
+
+      const currentLocalCategories = getStoredProductCategories();
+      const finalCategories = Array.from(new Set([...(filteredCategories || []), ...currentLocalCategories]));
+
+      // Save merged collections to localStorage
+      localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(finalPosts));
+      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(finalProducts));
+      localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(finalServices));
+      localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(filteredReviews));
+      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(finalOrders));
+      localStorage.setItem(COUPONS_STORAGE_KEY, JSON.stringify(finalCoupons));
+      localStorage.setItem(PRODUCT_CATEGORIES_STORAGE_KEY, JSON.stringify(finalCategories));
+
+      // If local had unsynced items, immediately push the complete merged state up to Cloudflare!
+      if (hasLocalOnlyProducts || hasLocalOnlyPosts || hasLocalOnlyServices || hasLocalOnlyOrders || hasLocalOnlyCoupons) {
+        console.debug("Found local unsynced items. Pushing complete merge to Cloudflare...");
         triggerFullAutoSync(true);
-        return true;
       }
 
-      let hasUpdates = false;
-
-      if (Array.isArray(posts) && posts.length > 0) {
-        localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(filteredPosts));
-        hasUpdates = true;
-      }
-      if (Array.isArray(products) && products.length > 0) {
-        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(filteredProducts));
-        hasUpdates = true;
-      }
-      if (Array.isArray(serviceCategories) && serviceCategories.length > 0) {
-        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(filteredServices));
-        hasUpdates = true;
-      }
-      if (Array.isArray(reviews) && reviews.length > 0) {
-        localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(filteredReviews));
-        hasUpdates = true;
-      }
-      if (Array.isArray(orders)) {
-        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(filteredOrders));
-        hasUpdates = true;
-      }
-      if (Array.isArray(coupons) && coupons.length > 0) {
-        localStorage.setItem(COUPONS_STORAGE_KEY, JSON.stringify(filteredCoupons));
-        hasUpdates = true;
-      }
-      if (Array.isArray(productCategories) && productCategories.length > 0) {
-        localStorage.setItem(PRODUCT_CATEGORIES_STORAGE_KEY, JSON.stringify(filteredCategories));
-        hasUpdates = true;
-      }
-
-      if (hasUpdates) {
-        window.dispatchEvent(
-          new CustomEvent(TERRE_DATA_SYNCED_EVENT, {
-            detail: {
-              posts: filteredPosts,
-              products: filteredProducts,
-              serviceCategories: filteredServices,
-              reviews: filteredReviews,
-              orders: filteredOrders,
-              coupons: filteredCoupons,
-              productCategories: filteredCategories,
-              timestamp: lastUpdated || new Date().toISOString(),
-            },
-          })
-        );
-      }
+      window.dispatchEvent(
+        new CustomEvent(TERRE_DATA_SYNCED_EVENT, {
+          detail: {
+            posts: finalPosts,
+            products: finalProducts,
+            serviceCategories: finalServices,
+            reviews: filteredReviews,
+            orders: finalOrders,
+            coupons: finalCoupons,
+            productCategories: finalCategories,
+            timestamp: lastUpdated || new Date().toISOString(),
+          },
+        })
+      );
       return true;
     }
   } catch (e) {
