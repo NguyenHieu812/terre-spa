@@ -87,7 +87,10 @@ export const PostDetailPage: React.FC = () => {
   }, [id]);
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const shareUrl = post
+      ? `${window.location.origin}/posts/${post.slug || post.id}`
+      : window.location.href;
+    navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -317,7 +320,7 @@ export const PostDetailPage: React.FC = () => {
                 {relatedPosts.map((rPost) => (
                   <Link
                     key={rPost.id}
-                    to={`/posts/${rPost.id}`}
+                    to={`/posts/${rPost.slug || rPost.id}`}
                     className="bg-white rounded-2xl overflow-hidden border border-brand-100 shadow-xs hover:shadow-lg transition-all group flex flex-col"
                   >
                     <div className="aspect-16/10 overflow-hidden bg-brand-100">

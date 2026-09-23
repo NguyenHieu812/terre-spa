@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS products (
   volume_or_weight TEXT,
   ingredients TEXT, -- JSON array string
   usage_instructions TEXT,
+  meta_title TEXT,
+  meta_description TEXT,
   updated_at TEXT
 );
 
@@ -79,7 +81,26 @@ CREATE TABLE IF NOT EXISTS services (
 CREATE INDEX IF NOT EXISTS idx_services_category ON services(category_id);
 CREATE INDEX IF NOT EXISTS idx_services_featured ON services(featured);
 
--- 5. Bảng Metadata Đồng bộ (App Meta)
+-- 5. Bảng Đơn Hàng (Orders)
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  customer_address TEXT,
+  customer_notes TEXT,
+  items TEXT NOT NULL, -- JSON array of OrderItem
+  total_amount REAL NOT NULL,
+  status TEXT DEFAULT 'pending', -- 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled'
+  created_at TEXT NOT NULL,
+  updated_at TEXT,
+  source TEXT DEFAULT 'website_product_modal',
+  admin_notes TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
+
+-- 6. Bảng Metadata Đồng bộ (App Meta)
 CREATE TABLE IF NOT EXISTS app_meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,

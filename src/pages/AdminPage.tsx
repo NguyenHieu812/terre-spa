@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Post, Product, ServiceCategory, CloudflareConfig, CustomerReview, AdminUser } from "../types";
+import { Post, Product, ServiceCategory, CloudflareConfig, CustomerReview, AdminUser, Order, OrderStatus } from "../types";
 import {
   getStoredPosts,
   saveStoredPosts,
@@ -10,6 +10,11 @@ import {
   saveStoredServices,
   getStoredReviews,
   saveStoredReviews,
+  getStoredOrders,
+  saveStoredOrders,
+  createOrder,
+  updateOrderStatus,
+  deleteOrder,
   TERRE_DATA_SYNCED_EVENT,
   syncWithCloudflareSilently,
 } from "../data/store";
@@ -30,11 +35,13 @@ import { ServiceManager } from "../components/admin/ServiceManager";
 import { ReviewManager } from "../components/admin/ReviewManager";
 import { UserManager } from "../components/admin/UserManager";
 import { CloudflareSettings } from "../components/admin/CloudflareSettings";
+import { OrderManager } from "../components/admin/OrderManager";
 import LogoTerre from "../assets/images/logo-terre-removebg.png";
 import {
   LayoutDashboard,
   FileText,
   Package,
+  ShoppingBag,
   Sparkles,
   Cloud,
   ExternalLink,
@@ -57,9 +64,10 @@ import {
   UserCheck,
   CheckCircle2,
   RefreshCw,
+  Phone,
 } from "lucide-react";
 
-type AdminTab = "dashboard" | "posts" | "products" | "services" | "reviews" | "users" | "cloudflare";
+type AdminTab = "dashboard" | "orders" | "posts" | "products" | "services" | "reviews" | "users" | "cloudflare";
 
 const AdminPage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => getCurrentAdminUser());
@@ -71,6 +79,7 @@ const AdminPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [reviews, setReviews] = useState<CustomerReview[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [cloudflareConfig, setCloudflareConfig] = useState<CloudflareConfig>(
     getDefaultCloudflareConfig()
   );
@@ -96,6 +105,7 @@ const AdminPage: React.FC = () => {
       setProducts(getStoredProducts());
       setServices(getStoredServices());
       setReviews(getStoredReviews());
+      setOrders(getStoredOrders());
       setCloudflareConfig(getDefaultCloudflareConfig());
     };
     loadAll();
@@ -122,6 +132,22 @@ const AdminPage: React.FC = () => {
   const handleSaveReviews = (updated: CustomerReview[]) => {
     setReviews(updated);
     saveStoredReviews(updated);
+  };
+
+  // Order Handlers
+  const handleSaveOrders = (updatedOrders: Order[]) => {
+    setOrders(updatedOrders);
+    saveStoredOrders(updatedOrders);
+  };
+
+  const handleUpdateOrderStatus = (orderId: string, status: OrderStatus, adminNotes?: string) => {
+    updateOrderStatus(orderId, status, adminNotes);
+    setOrders(getStoredOrders());
+  };
+
+  const handleDeleteOrder = (orderId: string) => {
+    deleteOrder(orderId);
+    setOrders(getStoredOrders());
   };
 
   const handleSavePost = (updatedPost: Post) => {
@@ -340,6 +366,9 @@ const AdminPage: React.FC = () => {
   const totalViews = posts.reduce((acc, p) => acc + (p.views || 0), 0);
   const publishedCount = posts.filter((p) => p.status === "published").length;
   const inStockCount = products.filter((p) => p.inStock).length;
+  const pendingOrders = orders.filter((o) => o.status === "pending");
+  const completedOrders = orders.filter((o) => o.status === "completed");
+  const totalRevenue = completedOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
 
   return (
     <div className="min-h-screen bg-brand-50/60 flex flex-col font-sans text-brand-950">
@@ -447,6 +476,26 @@ const AdminPage: React.FC = () => {
             <LayoutDashboard className="w-4 h-4" /> Tổng quan
           </button>
 
+          {/* Orders Tab */}
+          {(isSuper || perms.orders?.view) && (
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap relative ${
+                activeTab === "orders"
+                  ? "border-emerald-700 text-emerald-950 bg-emerald-50/70 font-bold"
+                  : "border-transparent text-brand-600 hover:text-brand-900 hover:bg-brand-50"
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4 text-emerald-600" />
+              <span>Đơn Hàng ({orders.length})</span>
+              {pendingOrders.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold animate-pulse">
+                  {pendingOrders.length}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Posts Tab */}
           {(isSuper || perms.posts?.view) && (
             <button
@@ -549,16 +598,16 @@ const AdminPage: React.FC = () => {
                   Terre Spa Hub Quản Trị
                 </h1>
                 <p className="text-brand-200 text-sm leading-relaxed">
-                  Hệ thống quản lý bài viết, sản phẩm thảo dược, gói dịch vụ dưỡng sinh và đánh giá khách hàng chuẩn hóa.
+                  Hệ thống quản lý bài viết, sản phẩm thảo dược, đơn hàng khách mua, gói dịch vụ dưỡng sinh và đánh giá chuẩn hóa.
                 </p>
 
                 <div className="pt-2 flex flex-wrap gap-3">
-                  {(isSuper || perms.posts?.create) && (
+                  {(isSuper || perms.orders?.view) && (
                     <button
-                      onClick={() => setActiveTab("posts")}
-                      className="px-5 py-2.5 bg-white text-brand-950 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:bg-brand-50 transition-colors flex items-center gap-1.5"
+                      onClick={() => setActiveTab("orders")}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md transition-colors flex items-center gap-1.5"
                     >
-                      <Plus className="w-4 h-4" /> Viết bài mới
+                      <ShoppingBag className="w-4 h-4" /> Quản lý Đơn Hàng {pendingOrders.length > 0 ? `(${pendingOrders.length} mới)` : ""}
                     </button>
                   )}
                   {(isSuper || perms.products?.create) && (
@@ -567,6 +616,14 @@ const AdminPage: React.FC = () => {
                       className="px-5 py-2.5 bg-brand-700 hover:bg-brand-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5"
                     >
                       <Plus className="w-4 h-4" /> Thêm sản phẩm
+                    </button>
+                  )}
+                  {(isSuper || perms.posts?.create) && (
+                    <button
+                      onClick={() => setActiveTab("posts")}
+                      className="px-5 py-2.5 bg-white text-brand-950 rounded-xl text-xs font-bold uppercase tracking-wider shadow-md hover:bg-brand-50 transition-colors flex items-center gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" /> Viết bài mới
                     </button>
                   )}
                   {isSuper && (
@@ -583,21 +640,28 @@ const AdminPage: React.FC = () => {
 
             {/* Metric Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {/* Stat 1 */}
+              {/* Stat 1: Orders */}
               <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-brand-600">
-                  <span className="text-xs font-bold uppercase tracking-wider">Tổng bài viết</span>
-                  <div className="p-2.5 bg-brand-100 rounded-xl text-brand-800">
-                    <FileText className="w-5 h-5" />
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span className="text-xs font-bold uppercase tracking-wider">Đơn Hàng Mua</span>
+                  <div className="p-2.5 bg-emerald-100 rounded-xl text-emerald-800">
+                    <ShoppingBag className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-serif font-bold text-brand-950">{posts.length}</div>
+                <div className="text-3xl font-serif font-bold text-brand-950 flex items-baseline gap-2">
+                  {orders.length}
+                  {pendingOrders.length > 0 && (
+                    <span className="text-xs font-sans font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                      {pendingOrders.length} mới
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-brand-500">
-                  {publishedCount} bài đã xuất bản · {posts.length - publishedCount} bản nháp
+                  Doanh thu: <strong className="text-emerald-700 font-semibold">{new Intl.NumberFormat("vi-VN").format(totalRevenue)} đ</strong>
                 </p>
               </div>
 
-              {/* Stat 2 */}
+              {/* Stat 2: Products */}
               <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-2">
                 <div className="flex items-center justify-between text-brand-600">
                   <span className="text-xs font-bold uppercase tracking-wider">Tổng sản phẩm</span>
@@ -611,7 +675,21 @@ const AdminPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Stat 3 */}
+              {/* Stat 3: Posts */}
+              <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-2">
+                <div className="flex items-center justify-between text-brand-600">
+                  <span className="text-xs font-bold uppercase tracking-wider">Tổng bài viết</span>
+                  <div className="p-2.5 bg-brand-100 rounded-xl text-brand-800">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-serif font-bold text-brand-950">{posts.length}</div>
+                <p className="text-xs text-brand-500">
+                  {publishedCount} bài đã xuất bản · {posts.length - publishedCount} bản nháp
+                </p>
+              </div>
+
+              {/* Stat 4: Services */}
               <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-2">
                 <div className="flex items-center justify-between text-brand-600">
                   <span className="text-xs font-bold uppercase tracking-wider">Gói Dịch Vụ</span>
@@ -622,19 +700,76 @@ const AdminPage: React.FC = () => {
                 <div className="text-3xl font-serif font-bold text-brand-950">{services.length} Danh mục</div>
                 <p className="text-xs text-brand-500">Gội đầu, massage, dưỡng sinh thảo dược</p>
               </div>
-
-              {/* Stat 4 */}
-              <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-2">
-                <div className="flex items-center justify-between text-brand-600">
-                  <span className="text-xs font-bold uppercase tracking-wider">Đánh giá khách hàng</span>
-                  <div className="p-2.5 bg-amber-100 rounded-xl text-amber-700">
-                    <Star className="w-5 h-5 fill-current" />
-                  </div>
-                </div>
-                <div className="text-3xl font-serif font-bold text-brand-950">{reviews.length}</div>
-                <p className="text-xs text-brand-500">Đánh giá và feedback xác thực</p>
-              </div>
             </div>
+
+            {/* Recent Orders Overview Widget */}
+            {(isSuper || perms.orders?.view) && orders.length > 0 && (
+              <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-brand-100 pb-3">
+                  <h3 className="font-serif font-bold text-base text-brand-900 flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-emerald-700" /> Đơn hàng mới nhất từ Website
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab("orders")}
+                    className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1"
+                  >
+                    Xem tất cả ({orders.length} đơn) <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {orders.slice(0, 3).map((order) => {
+                    const statusColors: Record<string, string> = {
+                      pending: "bg-amber-100 text-amber-800 border-amber-200",
+                      confirmed: "bg-blue-100 text-blue-800 border-blue-200",
+                      shipping: "bg-indigo-100 text-indigo-800 border-indigo-200",
+                      completed: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                      cancelled: "bg-red-100 text-red-800 border-red-200",
+                    };
+                    const statusLabels: Record<string, string> = {
+                      pending: "Chờ xác nhận",
+                      confirmed: "Đã xác nhận",
+                      shipping: "Đang giao",
+                      completed: "Hoàn thành",
+                      cancelled: "Đã hủy",
+                    };
+                    return (
+                      <div
+                        key={order.id}
+                        className="p-4 rounded-xl border border-brand-100 bg-brand-50/40 hover:bg-brand-50 transition-colors flex flex-col justify-between"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-xs font-bold text-brand-900">{order.id}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[order.status] || "bg-gray-100"}`}>
+                              {statusLabels[order.status] || order.status}
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-brand-900 line-clamp-1">{order.customerName}</p>
+                          <p className="text-[11px] text-brand-600 font-medium flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-brand-500" /> {order.customerPhone}
+                          </p>
+                          <p className="text-[11px] text-brand-500 line-clamp-1">
+                            {order.items?.map((it) => `${it.productName} (x${it.quantity})`).join(", ")}
+                          </p>
+                        </div>
+                        <div className="pt-2 mt-2 border-t border-brand-100 flex items-center justify-between text-xs">
+                          <span className="font-bold text-emerald-800">
+                            {new Intl.NumberFormat("vi-VN").format(order.totalAmount)} đ
+                          </span>
+                          <button
+                            onClick={() => setActiveTab("orders")}
+                            className="text-[11px] font-semibold text-brand-700 hover:text-brand-950 underline"
+                          >
+                            Chi tiết
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Two Column Section: Recent Posts & Top Products */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -672,7 +807,7 @@ const AdminPage: React.FC = () => {
                         </div>
                       </div>
                       <Link
-                        to={`/posts/${post.id}`}
+                        to={`/posts/${post.slug || post.id}`}
                         target="_blank"
                         className="p-1.5 text-brand-600 hover:text-brand-900 rounded-lg hover:bg-brand-100"
                         title="Xem bài"
@@ -728,7 +863,21 @@ const AdminPage: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 2: Posts */}
+        {/* Tab 2: Orders */}
+        {activeTab === "orders" && (isSuper || perms.orders?.view) && (
+          <OrderManager
+            orders={orders}
+            products={products}
+            onSaveOrders={handleSaveOrders}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onDeleteOrder={handleDeleteOrder}
+            canCreate={isSuper || perms.orders?.create}
+            canEdit={isSuper || perms.orders?.edit}
+            canDelete={isSuper || perms.orders?.delete}
+          />
+        )}
+
+        {/* Tab 3: Posts */}
         {activeTab === "posts" && (isSuper || perms.posts?.view) && (
           <PostManager
             posts={posts}
@@ -740,7 +889,7 @@ const AdminPage: React.FC = () => {
           />
         )}
 
-        {/* Tab 3: Products */}
+        {/* Tab 4: Products */}
         {activeTab === "products" && (isSuper || perms.products?.view) && (
           <ProductManager
             products={products}
@@ -752,7 +901,7 @@ const AdminPage: React.FC = () => {
           />
         )}
 
-        {/* Tab 4: Services */}
+        {/* Tab 5: Services */}
         {activeTab === "services" && (isSuper || perms.services?.view) && (
           <ServiceManager
             categories={services}
@@ -763,7 +912,7 @@ const AdminPage: React.FC = () => {
           />
         )}
 
-        {/* Tab 5: Reviews */}
+        {/* Tab 6: Reviews */}
         {activeTab === "reviews" && (isSuper || perms.reviews?.view) && (
           <ReviewManager
             reviews={reviews}
@@ -775,7 +924,7 @@ const AdminPage: React.FC = () => {
           />
         )}
 
-        {/* Tab 6: User Management & Permissions (SUPER ADMIN ONLY) */}
+        {/* Tab 7: User Management & Permissions (SUPER ADMIN ONLY) */}
         {activeTab === "users" && isSuper && (
           <UserManager
             users={allUsers}
@@ -784,7 +933,7 @@ const AdminPage: React.FC = () => {
           />
         )}
 
-        {/* Tab 7: Cloudflare Settings */}
+        {/* Tab 8: Cloudflare Settings */}
         {activeTab === "cloudflare" && (isSuper || perms.cloudflare?.view) && (
           <CloudflareSettings
             config={cloudflareConfig}

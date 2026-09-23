@@ -1,6 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Product } from "../../types";
 import { compressImageFile } from "../../utils/imageUtils";
+import {
+  getStoredProductCategories,
+  addProductCategory,
+} from "../../data/store";
 import {
   Plus,
   Search,
@@ -15,6 +19,15 @@ import {
   Tag,
   Check,
   Upload,
+  Eye,
+  X,
+  Globe,
+  Sliders,
+  Percent,
+  Layers,
+  ShoppingBag,
+  Phone,
+  HelpCircle,
 } from "lucide-react";
 import hairWashImg from "../../assets/images/spa_hair_wash_1781704187306.jpg";
 import massageDetail from "../../assets/images/spa_massage_detail_1781666753905.jpg";
@@ -32,20 +45,14 @@ interface ProductManagerProps {
 }
 
 const SPA_IMAGE_PRESETS = [
-  { label: "Chăm sóc tóc", url: hairWashImg },
+  { label: "Kem phục hồi da", url: facialCareImg },
+  { label: "Chăm sóc tóc & Gội", url: hairWashImg },
   { label: "Tinh dầu trị liệu", url: herbalCompressImg },
-  { label: "Serum chăm sóc da", url: facialCareImg },
   { label: "Set quà tặng Spa", url: massageDetail },
   { label: "Dưỡng sinh thư giãn", url: SanhChoSangTrong },
 ];
 
-const PRODUCT_CATEGORIES = [
-  "Chăm sóc tóc",
-  "Chăm sóc da",
-  "Dưỡng sinh thư giãn",
-  "Combo quà tặng",
-  "Tinh dầu & Nến thơm",
-];
+const WEIGHT_PRESET_UNITS = ["ml", "g", "kg", "lít", "Gói", "Hộp", "Chai", "Tuýp", "Set"];
 
 export const ProductManager: React.FC<ProductManagerProps> = ({
   products,
@@ -58,11 +65,23 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStock, setFilterStock] = useState("all");
   const [ingredientInput, setIngredientInput] = useState("");
+  const [isBulkIngredients, setIsBulkIngredients] = useState(false);
+  const [bulkIngredientsText, setBulkIngredientsText] = useState("");
   const [toastMessage, setToastMessage] = useState("");
+
+  // Dynamic categories
+  const [categories, setCategories] = useState<string[]>(() => getStoredProductCategories());
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  // Volume / Weight builder
+  const [volumeAmount, setVolumeAmount] = useState<string>("");
+  const [volumeUnit, setVolumeUnit] = useState<string>("ml");
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -81,51 +100,130 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   };
 
   const handleStartCreate = () => {
+    const defaultCat = categories[0] || "Chăm sóc da";
     const newProd: Product = {
       id: `prod-${Date.now()}`,
       name: "",
       slug: "",
-      category: "Dầu Gội Thảo Mộc",
-      price: 199000,
-      thumbnail: hairWashImg,
-      images: [hairWashImg],
+      category: defaultCat,
+      price: 189000,
+      originalPrice: 250000,
+      thumbnail: facialCareImg,
+      images: [facialCareImg],
       shortDesc: "",
       fullDesc: "",
       inStock: true,
       featured: false,
       rating: 5.0,
       reviewCount: 1,
-      volumeOrWeight: "300ml",
-      ingredients: ["Bồ kết", "Hương nhu", "Sả chanh"],
-      usageInstructions: "Làm ướt tóc, lấy lượng vừa đủ massage nhẹ nhàng rồi xả sạch với nước.",
+      volumeOrWeight: "25g",
+      ingredients: ["Chiết xuất rau má Centella", "D-Panthenol (Vitamin B5)", "Hyaluronic Acid"],
+      usageInstructions: "Làm sạch vùng da, thoa đều một lượng vừa đủ và vỗ nhẹ cho thẩm thấu.",
+      metaTitle: "",
+      metaDescription: "",
     };
     setEditingProduct(newProd);
     setIsCreating(true);
+    setIsBulkIngredients(false);
+    setBulkIngredientsText(newProd.ingredients?.join(", ") || "");
+    setVolumeAmount("25");
+    setVolumeUnit("g");
   };
 
   const handleStartEdit = (prod: Product) => {
     setEditingProduct({ ...prod });
     setIsCreating(false);
+    setIsBulkIngredients(false);
+    setBulkIngredientsText(prod.ingredients?.join(", ") || "");
+
+    // Parse volume amount & unit if matched
+    const vw = prod.volumeOrWeight || "";
+    const match = vw.match(/^(\d+(?:\.\d+)?)\s*([a-zA-ZÀ-ỹ]+.*)$/);
+    if (match) {
+      setVolumeAmount(match[1]);
+      setVolumeUnit(match[2].trim());
+    } else {
+      setVolumeAmount("");
+      setVolumeUnit(vw);
+    }
   };
 
-  const handleAddIngredient = () => {
-    if (!ingredientInput.trim() || !editingProduct) return;
-    const current = editingProduct.ingredients || [];
-    if (!current.includes(ingredientInput.trim())) {
+  // Fast Comma / Semicolon Ingredients Parser
+  const handleProcessIngredientsInput = (val: string) => {
+    if (!editingProduct) return;
+
+    // Check if contains delimiter (comma, semicolon, or newline)
+    if (val.includes(",") || val.includes(";") || val.includes("\n")) {
+      const parts = val
+        .split(/[,;\n]/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+
+      const current = editingProduct.ingredients || [];
+      const newItems = Array.from(new Set([...current, ...parts]));
       setEditingProduct({
         ...editingProduct,
-        ingredients: [...current, ingredientInput.trim()],
+        ingredients: newItems,
       });
+      setBulkIngredientsText(newItems.join(", "));
+      setIngredientInput("");
+    } else {
+      setIngredientInput(val);
     }
+  };
+
+  const handleAddSingleIngredient = () => {
+    if (!ingredientInput.trim() || !editingProduct) return;
+    const parts = ingredientInput
+      .split(/[,;\n]/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    const current = editingProduct.ingredients || [];
+    const newItems = Array.from(new Set([...current, ...parts]));
+    setEditingProduct({
+      ...editingProduct,
+      ingredients: newItems,
+    });
+    setBulkIngredientsText(newItems.join(", "));
     setIngredientInput("");
   };
 
   const handleRemoveIngredient = (ingToRemove: string) => {
     if (!editingProduct) return;
+    const updated = (editingProduct.ingredients || []).filter((i) => i !== ingToRemove);
     setEditingProduct({
       ...editingProduct,
-      ingredients: (editingProduct.ingredients || []).filter((i) => i !== ingToRemove),
+      ingredients: updated,
     });
+    setBulkIngredientsText(updated.join(", "));
+  };
+
+  const handleSaveBulkIngredients = (text: string) => {
+    setBulkIngredientsText(text);
+    if (!editingProduct) return;
+    const items = text
+      .split(/[,;\n]/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const deduplicated = Array.from(new Set(items));
+    setEditingProduct({
+      ...editingProduct,
+      ingredients: deduplicated,
+    });
+  };
+
+  const handleAddCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    const updated = addProductCategory(newCategoryName.trim());
+    setCategories(updated);
+    if (editingProduct) {
+      setEditingProduct({ ...editingProduct, category: newCategoryName.trim() });
+    }
+    setNewCategoryName("");
+    setIsAddingCategory(false);
+    showToast(`Đã thêm danh mục mới: "${newCategoryName.trim()}"`);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,9 +248,13 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       return;
     }
 
+    const finalSlug = editingProduct.slug ? createSlug(editingProduct.slug) : createSlug(editingProduct.name);
+
     const prodToSave: Product = {
       ...editingProduct,
-      slug: editingProduct.slug || createSlug(editingProduct.name),
+      slug: finalSlug,
+      metaTitle: editingProduct.metaTitle?.trim() || `${editingProduct.name} Chính Hãng | Terre Spa`,
+      metaDescription: editingProduct.metaDescription?.trim() || editingProduct.shortDesc || `Sản phẩm ${editingProduct.name} thảo mộc thiên nhiên tại Terre Spa.`,
       updatedAt: new Date().toISOString(),
     };
 
@@ -178,8 +280,14 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     }
   };
 
-  const handleDelete = (id: string, name: string) => {
-    handleDeleteClick(id, name);
+  const formatPrice = (num: number) => {
+    return new Intl.NumberFormat("vi-VN").format(num);
+  };
+
+  // Discount % computation
+  const calcDiscountPercent = (orig?: number, curr?: number) => {
+    if (!orig || !curr || orig <= curr) return 0;
+    return Math.round(((orig - curr) / orig) * 100);
   };
 
   const filteredProducts = products.filter((prod) => {
@@ -195,14 +303,15 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     return matchesSearch && matchesCat && matchesStock;
   });
 
-  const formatPrice = (num: number) => {
-    return new Intl.NumberFormat("vi-VN").format(num);
-  };
-
-  // If in create or edit form
+  // ==========================================
+  // VIEW: EDIT / CREATE PRODUCT FORM
+  // ==========================================
   if (editingProduct) {
+    const currentDiscount = calcDiscountPercent(editingProduct.originalPrice, editingProduct.price);
+
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
+        {/* Top bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-brand-200">
           <div className="flex items-center gap-3">
             <button
@@ -217,43 +326,54 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 {isCreating ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm"}
               </h2>
               <p className="text-xs text-brand-600">
-                Cập nhật thông tin chi tiết, giá bán và hình ảnh sản phẩm
+                Cập nhật thông tin chi tiết, giá bán, SEO Google và hình ảnh sản phẩm
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setPreviewProduct(editingProduct)}
+              className="px-3.5 py-2 border border-brand-300 text-brand-800 hover:bg-brand-100 rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <Eye className="w-4 h-4 text-brand-700" /> Xem trước (Preview)
+            </button>
+
             {!isCreating && canDelete && (
               <button
                 type="button"
                 onClick={() => handleDeleteClick(editingProduct.id, editingProduct.name || "Sản phẩm")}
-                className="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5"
                 title="Xóa sản phẩm này"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Xóa sản phẩm
+                <Trash2 className="w-3.5 h-3.5" /> Xóa
               </button>
             )}
+
             <button
               type="button"
               onClick={() => setEditingProduct(null)}
-              className="px-4 py-2 border border-brand-300 text-brand-800 rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-brand-100 transition-colors"
+              className="px-4 py-2 border border-brand-300 text-brand-800 rounded-xl text-xs font-semibold uppercase tracking-wider hover:bg-brand-100 transition-colors"
             >
-              Hủy bỏ
+              Hủy
             </button>
+
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-2 bg-brand-800 hover:bg-brand-900 text-white rounded-lg text-xs font-semibold uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+              className="px-6 py-2 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-semibold uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4" /> {isCreating ? "Thêm sản phẩm" : "Lưu thay đổi"}
             </button>
           </div>
         </div>
 
-        {/* Product Form Grid */}
+        {/* Form Grid */}
         <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Info (2 cols) */}
           <div className="lg:col-span-2 space-y-6">
+            {/* 1. Basic info */}
             <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-brand-800 mb-2">
@@ -269,26 +389,38 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                       ...editingProduct,
                       name: newName,
                       slug: isCreating || !editingProduct.slug ? createSlug(newName) : editingProduct.slug,
+                      metaTitle: !editingProduct.metaTitle || editingProduct.metaTitle === `${editingProduct.name} Chính Hãng | Terre Spa`
+                        ? `${newName} Chính Hãng | Terre Spa`
+                        : editingProduct.metaTitle,
                     });
                   }}
-                  placeholder="Vd: Dầu Gội Thảo Dược Bồ Kết Cô Đặc Terre Spa (500ml)..."
+                  placeholder="Vd: BISA DERMA HamadLAB 25g – Kem Phục Hồi, Làm Dịu & Dưỡng Ẩm Da..."
                   className="w-full px-4 py-3 text-base md:text-lg font-serif font-semibold border border-brand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 text-brand-950 bg-brand-50/30"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-brand-800 mb-1">
-                  Đường dẫn tĩnh (Slug URL)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-800">
+                    Đường dẫn tĩnh (Slug URL thân thiện SEO)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditingProduct({ ...editingProduct, slug: createSlug(editingProduct.name) })}
+                    className="text-[11px] text-brand-600 hover:text-brand-900 font-medium underline"
+                  >
+                    Tạo lại từ tên SP
+                  </button>
+                </div>
                 <div className="flex items-center">
-                  <span className="text-xs text-brand-500 bg-brand-100/60 px-3 py-2.5 border border-r-0 border-brand-200 rounded-l-lg font-mono">
+                  <span className="text-xs text-brand-500 bg-brand-100/60 px-3 py-2.5 border border-r-0 border-brand-200 rounded-l-xl font-mono">
                     /products/
                   </span>
                   <input
                     type="text"
                     value={editingProduct.slug}
                     onChange={(e) => setEditingProduct({ ...editingProduct, slug: e.target.value })}
-                    className="flex-1 px-3 py-2 text-xs font-mono border border-brand-200 rounded-r-lg focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 text-brand-800 bg-white"
+                    className="flex-1 px-3 py-2 text-xs font-mono border border-brand-200 rounded-r-xl focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 text-brand-800 bg-white"
                   />
                 </div>
               </div>
@@ -302,7 +434,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                   value={editingProduct.shortDesc}
                   onChange={(e) => setEditingProduct({ ...editingProduct, shortDesc: e.target.value })}
                   placeholder="Mô tả tóm tắt tính năng và công dụng chính của sản phẩm..."
-                  className="w-full px-3 py-2 text-sm border border-brand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-brand-800 bg-white"
+                  className="w-full px-3.5 py-2.5 text-sm border border-brand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-brand-800 bg-white"
                 />
               </div>
 
@@ -315,61 +447,93 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                   value={editingProduct.fullDesc}
                   onChange={(e) => setEditingProduct({ ...editingProduct, fullDesc: e.target.value })}
                   placeholder="Chi tiết về nguồn gốc, quy trình chiết xuất thủ công, công dụng toàn diện..."
-                  className="w-full px-3 py-2 text-sm border border-brand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-brand-800 bg-white leading-relaxed"
+                  className="w-full px-3.5 py-2.5 text-sm border border-brand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-brand-800 bg-white leading-relaxed"
                 />
               </div>
             </div>
 
-            {/* Ingredients & Usage */}
+            {/* 2. Fast Ingredients & Usage */}
             <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-4">
-              <h3 className="text-sm font-serif font-bold text-brand-900 border-b border-brand-100 pb-2">
-                Thành phần thảo mộc &amp; Hướng dẫn sử dụng
-              </h3>
+              <div className="flex items-center justify-between border-b border-brand-100 pb-2">
+                <h3 className="text-sm font-serif font-bold text-brand-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-brand-600" /> Thành phần thảo mộc &amp; Hướng dẫn sử dụng
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsBulkIngredients(!isBulkIngredients)}
+                  className="text-xs text-brand-700 hover:text-brand-950 font-semibold flex items-center gap-1 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  {isBulkIngredients ? "Nhập từng thành phần" : "Nhập nhanh cả danh sách (Dấu phẩy)"}
+                </button>
+              </div>
 
               <div>
                 <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider mb-1.5">
-                  Thành phần chính (Ingredients)
+                  Thành phần chính (Tự động nhận diện khi gõ dấu phẩy ",")
                 </label>
-                <div className="flex gap-1.5 mb-2">
-                  <input
-                    type="text"
-                    value={ingredientInput}
-                    onChange={(e) => setIngredientInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddIngredient();
-                      }
-                    }}
-                    placeholder="Vd: Bồ kết nướng, Vỏ bưởi (nhấn Enter để thêm)..."
-                    className="flex-1 px-3 py-2 text-xs border border-brand-200 rounded-lg focus:outline-none focus:border-brand-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddIngredient}
-                    className="px-4 py-2 bg-brand-800 text-white rounded-lg text-xs font-semibold"
-                  >
-                    Thêm
-                  </button>
-                </div>
 
-                <div className="flex flex-wrap gap-1.5">
-                  {(editingProduct.ingredients || []).map((ing) => (
-                    <span
-                      key={ing}
-                      className="inline-flex items-center gap-1 text-xs bg-brand-100 text-brand-900 px-3 py-1 rounded-full font-medium"
-                    >
-                      🌿 {ing}
+                {isBulkIngredients ? (
+                  <div className="space-y-2">
+                    <textarea
+                      rows={3}
+                      value={bulkIngredientsText}
+                      onChange={(e) => handleSaveBulkIngredients(e.target.value)}
+                      placeholder="Dán hoặc gõ danh sách thành phần cách nhau dấu phẩy: Rau má Centella, Vitamin B5, Hyaluronic Acid..."
+                      className="w-full px-3.5 py-2 text-xs border border-brand-300 rounded-xl focus:outline-none focus:border-brand-600 bg-brand-50/20 font-medium"
+                    />
+                    <p className="text-[11px] text-brand-500 italic">
+                      Mẹo: Nhập hoặc dán trực tiếp nhiều thành phần ngăn cách bởi dấu phẩy, hệ thống sẽ tự động tách thành phần.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={ingredientInput}
+                        onChange={(e) => handleProcessIngredientsInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === ",") {
+                            e.preventDefault();
+                            handleAddSingleIngredient();
+                          }
+                        }}
+                        placeholder="Gõ thành phần (cách nhau dấu phẩy hoặc nhấn Enter để thêm)..."
+                        className="flex-1 px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600"
+                      />
                       <button
                         type="button"
-                        onClick={() => handleRemoveIngredient(ing)}
-                        className="hover:text-red-600 font-bold ml-1"
+                        onClick={handleAddSingleIngredient}
+                        className="px-4 py-2 bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-xs hover:bg-brand-900"
                       >
-                        ×
+                        Thêm
                       </button>
-                    </span>
-                  ))}
-                </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2.5 bg-brand-50/50 rounded-xl border border-brand-100">
+                      {(editingProduct.ingredients || []).length === 0 ? (
+                        <span className="text-xs text-brand-400 italic">Chưa có thành phần nào</span>
+                      ) : (
+                        (editingProduct.ingredients || []).map((ing) => (
+                          <span
+                            key={ing}
+                            className="inline-flex items-center gap-1.5 text-xs bg-white border border-brand-200 text-brand-900 px-3 py-1 rounded-full font-medium shadow-2xs"
+                          >
+                            🌿 {ing}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveIngredient(ing)}
+                              className="hover:text-red-600 font-bold ml-0.5 text-brand-400 hover:scale-110"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -383,21 +547,87 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                     setEditingProduct({ ...editingProduct, usageInstructions: e.target.value })
                   }
                   placeholder="Cách dùng sản phẩm để đạt hiệu quả cao nhất..."
-                  className="w-full px-3 py-2 text-xs border border-brand-200 rounded-lg focus:outline-none focus:border-brand-600"
+                  className="w-full px-3.5 py-2.5 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600"
                 />
+              </div>
+            </div>
+
+            {/* 3. SEO Settings (Google Title & Meta Description) */}
+            <div className="bg-white p-6 rounded-2xl border border-brand-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-brand-100 pb-2">
+                <h3 className="text-sm font-serif font-bold text-brand-900 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-brand-600" /> Tối ưu hóa SEO Google (Meta Title &amp; Description)
+                </h3>
+                <span className="text-[11px] text-green-700 bg-green-50 px-2 py-0.5 rounded font-semibold border border-green-200">
+                  Chuẩn SEO
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider">
+                      Tiêu đề SEO (Meta Title)
+                    </label>
+                    <span className="text-[11px] text-brand-500">
+                      {editingProduct.metaTitle?.length || 0}/60 ký tự (Khuyên dùng: 50-60)
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={editingProduct.metaTitle || ""}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, metaTitle: e.target.value })}
+                    placeholder="Vd: Kem Phục Hồi Da BISA DERMA HamadLAB 25g Chính Hãng | Terre Spa"
+                    className="w-full px-3.5 py-2.5 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600 bg-brand-50/20"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider">
+                      Mô tả SEO (Meta Description)
+                    </label>
+                    <span className="text-[11px] text-brand-500">
+                      {editingProduct.metaDescription?.length || 0}/160 ký tự (Khuyên dùng: 140-160)
+                    </span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={editingProduct.metaDescription || ""}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, metaDescription: e.target.value })}
+                    placeholder="Mô tả hấp dẫn xuất hiện dưới tiêu đề trên trang tìm kiếm Google..."
+                    className="w-full px-3.5 py-2.5 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600 bg-brand-50/20"
+                  />
+                </div>
+
+                {/* Google Search Result Preview */}
+                <div className="p-4 bg-brand-50/60 rounded-xl border border-brand-200/80 space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-brand-500 mb-1">
+                    Xem trước kết quả tìm kiếm Google (Google SERP Snippet)
+                  </p>
+                  <div className="text-xs text-emerald-800 flex items-center gap-1 font-mono truncate">
+                    https://terre-spa.vercel.app/products/{editingProduct.slug || "slug-san-pham"}
+                  </div>
+                  <div className="text-sm md:text-base text-blue-800 font-medium hover:underline cursor-pointer line-clamp-1">
+                    {editingProduct.metaTitle || `${editingProduct.name || "Tên sản phẩm"} | Terre Spa`}
+                  </div>
+                  <div className="text-xs text-brand-700 line-clamp-2 leading-relaxed">
+                    {editingProduct.metaDescription || editingProduct.shortDesc || "Khám phá các sản phẩm thảo dược và chăm sóc phục hồi da chuẩn spa từ Terre Spa."}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Sidebar (1 col) */}
           <div className="space-y-6">
-            {/* Price & Category */}
+            {/* Price & Discount */}
             <div className="bg-white p-5 rounded-2xl border border-brand-200 shadow-xs space-y-4">
               <h3 className="text-sm font-serif font-bold text-brand-900 border-b border-brand-100 pb-2 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-brand-600" /> Giá bán &amp; Phân loại
+                <DollarSign className="w-4 h-4 text-brand-600" /> Giá bán &amp; % Giảm giá
               </h3>
 
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div>
                   <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider mb-1">
                     Giá bán ưu đãi (VNĐ) *
@@ -411,7 +641,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                     onChange={(e) =>
                       setEditingProduct({ ...editingProduct, price: Number(e.target.value) })
                     }
-                    className="w-full px-3 py-2 text-sm font-bold text-brand-900 border border-brand-200 rounded-lg focus:outline-none focus:border-brand-600 bg-brand-50/40"
+                    className="w-full px-3.5 py-2 text-sm font-bold text-brand-900 border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600 bg-brand-50/40"
                   />
                   <p className="text-[11px] text-brand-600 mt-1">
                     Hiển thị: <strong>{formatPrice(editingProduct.price)} VNĐ</strong>
@@ -434,37 +664,124 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                       })
                     }
                     placeholder="Để trống nếu không giảm giá"
-                    className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:border-brand-600"
+                    className="w-full px-3.5 py-2 text-sm border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider mb-1">
+                {/* Live Discount calculation badge */}
+                {currentDiscount > 0 ? (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between text-xs text-red-800">
+                    <span className="font-semibold flex items-center gap-1">
+                      <Percent className="w-3.5 h-3.5 text-red-600" /> Tag khuyến mãi:
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-red-600 text-white font-bold rounded-md">
+                      -{currentDiscount}% SALE
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-brand-400 italic">
+                    (Nhập Giá gốc cao hơn Giá bán để tự động hiển thị tag % SALE)
+                  </p>
+                )}
+
+                {/* Weight / Volume selector */}
+                <div className="pt-2 border-t border-brand-100">
+                  <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider mb-1.5">
                     Dung tích / Quy cách đóng gói
                   </label>
-                  <input
-                    type="text"
-                    value={editingProduct.volumeOrWeight || ""}
-                    onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, volumeOrWeight: e.target.value })
-                    }
-                    placeholder="Vd: 500ml, 100g, Hộp 30 gói"
-                    className="w-full px-3 py-2 text-xs border border-brand-200 rounded-lg focus:outline-none focus:border-brand-600"
-                  />
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="Số lượng (vd: 25, 500...)"
+                      value={volumeAmount}
+                      onChange={(e) => {
+                        const amt = e.target.value;
+                        setVolumeAmount(amt);
+                        setEditingProduct({
+                          ...editingProduct,
+                          volumeOrWeight: amt ? `${amt}${volumeUnit}` : volumeUnit,
+                        });
+                      }}
+                      className="w-24 px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600 font-bold"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Quy cách đầy đủ"
+                      value={editingProduct.volumeOrWeight || ""}
+                      onChange={(e) =>
+                        setEditingProduct({ ...editingProduct, volumeOrWeight: e.target.value })
+                      }
+                      className="flex-1 px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    {WEIGHT_PRESET_UNITS.map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => {
+                          setVolumeUnit(u);
+                          const combined = volumeAmount ? `${volumeAmount}${u}` : u;
+                          setEditingProduct({ ...editingProduct, volumeOrWeight: combined });
+                        }}
+                        className={`px-2 py-1 text-[11px] rounded-lg border transition-all ${
+                          editingProduct.volumeOrWeight?.includes(u)
+                            ? "bg-brand-900 text-white border-brand-900 font-semibold"
+                            : "bg-brand-50 border-brand-200 text-brand-700 hover:bg-brand-100"
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider mb-1">
-                    Danh mục sản phẩm
-                  </label>
+                {/* Category with creation */}
+                <div className="pt-2 border-t border-brand-100">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-brand-800 uppercase tracking-wider">
+                      Danh mục sản phẩm
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingCategory(!isAddingCategory)}
+                      className="text-[11px] text-brand-800 hover:text-brand-950 font-bold flex items-center gap-1 underline"
+                    >
+                      <Plus className="w-3 h-3" /> Tạo mới
+                    </button>
+                  </div>
+
+                  {isAddingCategory ? (
+                    <div className="p-3 bg-brand-50 rounded-xl border border-brand-200 space-y-2 mb-2">
+                      <span className="text-[11px] font-bold text-brand-900 block">Tạo danh mục mới:</span>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          placeholder="Vd: Mỹ phẩm sinh học..."
+                          className="flex-1 px-2.5 py-1.5 text-xs border border-brand-200 rounded-lg focus:outline-none bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCategorySubmit}
+                          className="px-3 py-1.5 bg-brand-800 text-white text-xs font-bold rounded-lg"
+                        >
+                          Lưu
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <select
                     value={editingProduct.category}
                     onChange={(e) =>
                       setEditingProduct({ ...editingProduct, category: e.target.value })
                     }
-                    className="w-full px-3 py-2 text-sm border border-brand-200 rounded-lg focus:outline-none focus:border-brand-600 bg-brand-50/50 text-brand-900 font-medium"
+                    className="w-full px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600 bg-brand-50/50 text-brand-900 font-medium"
                   >
-                    {PRODUCT_CATEGORIES.map((c) => (
+                    {categories.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
@@ -472,6 +789,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                   </select>
                 </div>
 
+                {/* Stock & Featured */}
                 <div className="pt-2 space-y-2 border-t border-brand-100">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-brand-800">Tình trạng còn hàng</span>
@@ -510,7 +828,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
             <div className="bg-white p-5 rounded-2xl border border-brand-200 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-brand-100 pb-2">
                 <h3 className="text-sm font-serif font-bold text-brand-900 flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-brand-600" /> Hình ảnh đại diện
+                  <ImageIcon className="w-4 h-4 text-brand-600" /> Hình ảnh sản phẩm
                 </h3>
                 {editingProduct.thumbnail && (
                   <button
@@ -524,14 +842,14 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
               </div>
 
               <div className="space-y-3">
-                <div className="aspect-square w-full rounded-xl overflow-hidden bg-brand-100 border border-brand-200 relative group flex items-center justify-center">
+                <div className="aspect-square w-full rounded-2xl overflow-hidden bg-brand-100 border border-brand-200 relative group flex items-center justify-center shadow-inner">
                   {editingProduct.thumbnail ? (
                     <img
                       src={editingProduct.thumbnail}
                       alt={editingProduct.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = hairWashImg;
+                        (e.target as HTMLImageElement).src = facialCareImg;
                       }}
                     />
                   ) : (
@@ -544,7 +862,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 
                 {/* Upload from device */}
                 <div>
-                  <label className="cursor-pointer flex items-center justify-center gap-2 px-3 py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-900 rounded-xl text-xs font-semibold border border-brand-200 transition-colors">
+                  <label className="cursor-pointer flex items-center justify-center gap-2 px-3 py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-900 rounded-xl text-xs font-semibold border border-brand-200 transition-colors shadow-xs">
                     <Upload className="w-3.5 h-3.5 text-brand-700" />
                     <span>Tải ảnh từ máy tính / điện thoại</span>
                     <input
@@ -567,7 +885,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                       setEditingProduct({ ...editingProduct, thumbnail: e.target.value })
                     }
                     placeholder="https://... hoặc data:image/..."
-                    className="w-full px-3 py-2 text-xs border border-brand-200 rounded-lg focus:outline-none focus:border-brand-600"
+                    className="w-full px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600"
                   />
                 </div>
 
@@ -583,9 +901,9 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                         onClick={() =>
                           setEditingProduct({ ...editingProduct, thumbnail: preset.url })
                         }
-                        className={`text-[11px] p-1.5 text-left border rounded-lg transition-colors truncate ${
+                        className={`text-[11px] p-2 text-left border rounded-xl transition-colors truncate ${
                           editingProduct.thumbnail === preset.url
-                            ? "bg-brand-800 text-white border-brand-800 font-medium"
+                            ? "bg-brand-800 text-white border-brand-800 font-semibold"
                             : "border-brand-200 hover:border-brand-600 hover:bg-brand-50 text-brand-900"
                         }`}
                       >
@@ -598,11 +916,121 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
             </div>
           </div>
         </form>
+
+        {/* Live Preview Modal */}
+        {previewProduct && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl shadow-2xl relative z-10 max-w-4xl w-full overflow-hidden max-h-[90vh] flex flex-col md:flex-row border border-brand-200">
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setPreviewProduct(null)}
+                className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-brand-900 rounded-full shadow-md transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Left Column (Image) */}
+              <div className="md:w-1/2 bg-brand-100 relative shrink-0 min-h-[300px] md:min-h-[480px]">
+                <img
+                  src={previewProduct.thumbnail || facialCareImg}
+                  alt={previewProduct.name}
+                  className="w-full h-full object-cover"
+                />
+                {previewProduct.featured && (
+                  <span className="absolute top-4 left-4 bg-brand-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-300" /> Bán chạy
+                  </span>
+                )}
+                {calcDiscountPercent(previewProduct.originalPrice, previewProduct.price) > 0 && (
+                  <span className="absolute top-4 right-14 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
+                    -{calcDiscountPercent(previewProduct.originalPrice, previewProduct.price)}% SALE
+                  </span>
+                )}
+              </div>
+
+              {/* Right Column (Info) */}
+              <div className="p-6 md:p-8 flex-1 overflow-y-auto flex flex-col justify-between space-y-5">
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-brand-600 uppercase tracking-widest">
+                      {previewProduct.category}
+                    </span>
+                    {previewProduct.volumeOrWeight && (
+                      <span className="text-xs bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full font-semibold">
+                        {previewProduct.volumeOrWeight}
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="text-xl md:text-2xl font-serif font-bold text-brand-950 leading-snug">
+                    {previewProduct.name || "Tên sản phẩm mẫu"}
+                  </h2>
+
+                  <div className="flex items-baseline gap-3 pb-3 border-b border-brand-100">
+                    <span className="text-2xl font-bold text-brand-900 font-serif">
+                      {formatPrice(previewProduct.price)} VNĐ
+                    </span>
+                    {previewProduct.originalPrice && previewProduct.originalPrice > previewProduct.price && (
+                      <span className="text-sm text-brand-400 line-through">
+                        {formatPrice(previewProduct.originalPrice)} VNĐ
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-brand-700 leading-relaxed">
+                    {previewProduct.shortDesc || previewProduct.fullDesc || "Chưa có mô tả chi tiết sản phẩm."}
+                  </p>
+
+                  {/* Ingredients */}
+                  {previewProduct.ingredients && previewProduct.ingredients.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-brand-800 block">
+                        Thành phần thảo mộc:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {previewProduct.ingredients.map((ing) => (
+                          <span
+                            key={ing}
+                            className="text-[11px] bg-brand-100 text-brand-900 px-2.5 py-0.5 rounded-md font-medium"
+                          >
+                            🌿 {ing}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Usage instructions */}
+                  {previewProduct.usageInstructions && (
+                    <div className="p-3 bg-brand-50 rounded-xl border border-brand-100 text-xs text-brand-800 space-y-1">
+                      <span className="font-bold text-brand-900">Hướng dẫn sử dụng:</span>
+                      <p>{previewProduct.usageInstructions}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-brand-100 flex items-center justify-between text-xs text-brand-500">
+                  <span>Xem trước hiển thị trên giao diện khách hàng</span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewProduct(null)}
+                    className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-semibold uppercase"
+                  >
+                    Đóng xem trước
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  // Product List View
+  // ==========================================
+  // VIEW: PRODUCT TABLE LIST
+  // ==========================================
   return (
     <div className="space-y-6">
       {toastMessage && (
@@ -651,7 +1079,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
             className="px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none bg-brand-50/50 text-brand-800 font-medium"
           >
             <option value="all">Tất cả danh mục</option>
-            {PRODUCT_CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -677,7 +1105,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
           {canCreate && (
             <button
               onClick={handleStartCreate}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-100 text-brand-800 rounded-lg text-xs font-semibold hover:bg-brand-200 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-100 text-brand-800 rounded-xl text-xs font-semibold hover:bg-brand-200 transition-colors"
             >
               <Plus className="w-4 h-4" /> Thêm sản phẩm đầu tiên
             </button>
@@ -691,101 +1119,118 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 <tr>
                   <th className="p-4">Sản phẩm</th>
                   <th className="p-4">Danh mục</th>
-                  <th className="p-4">Giá bán</th>
+                  <th className="p-4">Giá bán &amp; % Giảm</th>
                   <th className="p-4">Quy cách</th>
                   <th className="p-4">Tình trạng</th>
                   <th className="p-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-100">
-                {filteredProducts.map((prod) => (
-                  <tr key={prod.id} className="hover:bg-brand-50/50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={prod.thumbnail}
-                          alt={prod.name}
-                          className="w-14 h-14 rounded-lg object-cover border border-brand-100 shrink-0"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = hairWashImg;
-                          }}
-                        />
-                        <div className="space-y-1">
-                          <div className="font-serif font-bold text-sm text-brand-950 line-clamp-1 hover:text-brand-700">
-                            {prod.name}
+                {filteredProducts.map((prod) => {
+                  const discount = calcDiscountPercent(prod.originalPrice, prod.price);
+                  return (
+                    <tr key={prod.id} className="hover:bg-brand-50/50 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={prod.thumbnail}
+                            alt={prod.name}
+                            className="w-14 h-14 rounded-xl object-cover border border-brand-100 shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = facialCareImg;
+                            }}
+                          />
+                          <div className="space-y-1">
+                            <div className="font-serif font-bold text-sm text-brand-950 line-clamp-1 hover:text-brand-700">
+                              {prod.name}
+                            </div>
+                            <div className="text-[11px] text-brand-500 font-mono line-clamp-1">
+                              /products/{prod.slug || prod.id}
+                            </div>
+                            {prod.featured && (
+                              <span className="inline-flex items-center gap-1 text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-semibold">
+                                <Sparkles className="w-3 h-3 text-amber-600" /> Bán chạy
+                              </span>
+                            )}
                           </div>
-                          <p className="text-[11px] text-brand-500 line-clamp-1">{prod.shortDesc}</p>
-                          {prod.featured && (
-                            <span className="inline-flex items-center gap-1 text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-semibold">
-                              <Sparkles className="w-3 h-3 text-amber-600" /> Bán chạy
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className="px-2.5 py-1 rounded-full bg-brand-100 text-brand-800 text-[10px] font-semibold whitespace-nowrap">
+                          {prod.category}
+                        </span>
+                      </td>
+                      <td className="p-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold text-brand-900 text-sm">{formatPrice(prod.price)} đ</div>
+                          {discount > 0 && (
+                            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                              -{discount}%
                             </span>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="px-2.5 py-1 rounded-full bg-brand-100 text-brand-800 text-[10px] font-semibold whitespace-nowrap">
-                        {prod.category}
-                      </span>
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <div className="font-bold text-brand-900 text-sm">{formatPrice(prod.price)} đ</div>
-                      {prod.originalPrice && prod.originalPrice > prod.price && (
-                        <div className="text-[11px] text-brand-400 line-through">
-                          {formatPrice(prod.originalPrice)} đ
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4 text-brand-600 whitespace-nowrap">
-                      {prod.volumeOrWeight || "—"}
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      {prod.inStock ? (
-                        <span className="inline-flex items-center gap-1.5 text-green-700 font-semibold text-[11px] bg-green-50 px-2.5 py-1 rounded-full border border-green-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span> Còn hàng
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-red-700 font-semibold text-[11px] bg-red-50 px-2.5 py-1 rounded-full border border-red-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span> Hết hàng
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {canEdit && (
+                        {prod.originalPrice && prod.originalPrice > prod.price && (
+                          <div className="text-[11px] text-brand-400 line-through">
+                            {formatPrice(prod.originalPrice)} đ
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4 text-brand-600 whitespace-nowrap">
+                        {prod.volumeOrWeight || "—"}
+                      </td>
+                      <td className="p-4 whitespace-nowrap">
+                        {prod.inStock ? (
+                          <span className="inline-flex items-center gap-1.5 text-green-700 font-semibold text-[11px] bg-green-50 px-2.5 py-1 rounded-full border border-green-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span> Còn hàng
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-red-700 font-semibold text-[11px] bg-red-50 px-2.5 py-1 rounded-full border border-red-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span> Hết hàng
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => handleStartEdit(prod)}
-                            title="Chỉnh sửa sản phẩm"
+                            onClick={() => setPreviewProduct(prod)}
+                            title="Xem trước sản phẩm"
                             className="p-1.5 text-brand-700 hover:text-brand-950 hover:bg-brand-100 rounded-lg transition-colors"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(prod.id, prod.name)}
-                            title="Xóa sản phẩm"
-                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        {!canEdit && !canDelete && (
-                          <span className="text-[10px] text-brand-400 italic">Chỉ xem</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => handleStartEdit(prod)}
+                              title="Chỉnh sửa sản phẩm"
+                              className="p-1.5 text-brand-700 hover:text-brand-950 hover:bg-brand-100 rounded-lg transition-colors"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteClick(prod.id, prod.name)}
+                              title="Xóa sản phẩm"
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* Custom Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       {productToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-brand-200 space-y-5 animate-in zoom-in-95 duration-200">
@@ -820,6 +1265,114 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
               >
                 <Trash2 className="w-4 h-4" /> Xác nhận xóa
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Preview Modal (Table view) */}
+      {previewProduct && !editingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl relative z-10 max-w-4xl w-full overflow-hidden max-h-[90vh] flex flex-col md:flex-row border border-brand-200">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setPreviewProduct(null)}
+              className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-brand-900 rounded-full shadow-md transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Left Column (Image) */}
+            <div className="md:w-1/2 bg-brand-100 relative shrink-0 min-h-[300px] md:min-h-[480px]">
+              <img
+                src={previewProduct.thumbnail || facialCareImg}
+                alt={previewProduct.name}
+                className="w-full h-full object-cover"
+              />
+              {previewProduct.featured && (
+                <span className="absolute top-4 left-4 bg-brand-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-300" /> Bán chạy
+                </span>
+              )}
+              {calcDiscountPercent(previewProduct.originalPrice, previewProduct.price) > 0 && (
+                <span className="absolute top-4 right-14 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
+                  -{calcDiscountPercent(previewProduct.originalPrice, previewProduct.price)}% SALE
+                </span>
+              )}
+            </div>
+
+            {/* Right Column (Info) */}
+            <div className="p-6 md:p-8 flex-1 overflow-y-auto flex flex-col justify-between space-y-5">
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-brand-600 uppercase tracking-widest">
+                    {previewProduct.category}
+                  </span>
+                  {previewProduct.volumeOrWeight && (
+                    <span className="text-xs bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full font-semibold">
+                      {previewProduct.volumeOrWeight}
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="text-xl md:text-2xl font-serif font-bold text-brand-950 leading-snug">
+                  {previewProduct.name}
+                </h2>
+
+                <div className="flex items-baseline gap-3 pb-3 border-b border-brand-100">
+                  <span className="text-2xl font-bold text-brand-900 font-serif">
+                    {formatPrice(previewProduct.price)} VNĐ
+                  </span>
+                  {previewProduct.originalPrice && previewProduct.originalPrice > previewProduct.price && (
+                    <span className="text-sm text-brand-400 line-through">
+                      {formatPrice(previewProduct.originalPrice)} VNĐ
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-brand-700 leading-relaxed">
+                  {previewProduct.shortDesc || previewProduct.fullDesc}
+                </p>
+
+                {/* Ingredients */}
+                {previewProduct.ingredients && previewProduct.ingredients.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-brand-800 block">
+                      Thành phần thảo mộc:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {previewProduct.ingredients.map((ing) => (
+                        <span
+                          key={ing}
+                          className="text-[11px] bg-brand-100 text-brand-900 px-2.5 py-0.5 rounded-md font-medium"
+                        >
+                          🌿 {ing}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Usage instructions */}
+                {previewProduct.usageInstructions && (
+                  <div className="p-3 bg-brand-50 rounded-xl border border-brand-100 text-xs text-brand-800 space-y-1">
+                    <span className="font-bold text-brand-900">Hướng dẫn sử dụng:</span>
+                    <p>{previewProduct.usageInstructions}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-brand-100 flex items-center justify-between text-xs text-brand-500">
+                <span>Xem trước hiển thị trên giao diện khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewProduct(null)}
+                  className="px-4 py-2 bg-brand-900 text-white rounded-xl text-xs font-semibold uppercase"
+                >
+                  Đóng xem trước
+                </button>
+              </div>
             </div>
           </div>
         </div>

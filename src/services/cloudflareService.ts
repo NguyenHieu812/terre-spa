@@ -1,4 +1,4 @@
-import { CloudflareConfig, Post, Product, AppDataPayload, ServiceCategory, CustomerReview } from "../types";
+import { CloudflareConfig, Post, Product, AppDataPayload, ServiceCategory, CustomerReview, Order } from "../types";
 
 export const CLOUDFLARE_STORAGE_KEY = "terre_spa_cloudflare_config";
 
@@ -105,7 +105,7 @@ export async function testCloudflareConnection(config: CloudflareConfig): Promis
 }
 
 /**
- * Sync all local posts, products, services, and reviews to Cloudflare KV/Worker
+ * Sync all local posts, products, services, reviews, categories, and orders to Cloudflare KV/Worker
  */
 export async function syncToCloudflare(
   config: CloudflareConfig,
@@ -114,9 +114,12 @@ export async function syncToCloudflare(
     products: Product[];
     serviceCategories?: ServiceCategory[];
     reviews?: CustomerReview[];
+    orders?: Order[];
+    productCategories?: string[];
     deletedPostIds?: string[];
     deletedProductIds?: string[];
     deletedServiceIds?: string[];
+    deletedOrderIds?: string[];
   }
 ): Promise<{ success: boolean; message: string; timestamp?: string }> {
   if (!config.workerUrl || !config.workerUrl.trim()) {
@@ -146,9 +149,12 @@ export async function syncToCloudflare(
         products: payload.products,
         serviceCategories: payload.serviceCategories || [],
         reviews: payload.reviews || [],
+        orders: payload.orders || [],
+        productCategories: payload.productCategories || [],
         deletedPostIds: payload.deletedPostIds || [],
         deletedProductIds: payload.deletedProductIds || [],
         deletedServiceIds: payload.deletedServiceIds || [],
+        deletedOrderIds: payload.deletedOrderIds || [],
         version: "1.0.0",
         timestamp: new Date().toISOString(),
       }),
@@ -160,7 +166,7 @@ export async function syncToCloudflare(
       const ts = data.lastUpdated || new Date().toISOString();
       return {
         success: true,
-        message: `Đã đồng bộ thành công ${payload.posts.length} bài viết, ${payload.products.length} sản phẩm, ${payload.serviceCategories?.length || 0} danh mục dịch vụ & ${payload.reviews?.length || 0} đánh giá lên Cloudflare!`,
+        message: `Đã đồng bộ thành công ${payload.posts.length} bài viết, ${payload.products.length} sản phẩm, ${payload.serviceCategories?.length || 0} danh mục dịch vụ, ${payload.reviews?.length || 0} đánh giá & ${payload.orders?.length || 0} đơn hàng lên Cloudflare!`,
         timestamp: ts,
       };
     } else {
@@ -178,7 +184,7 @@ export async function syncToCloudflare(
 }
 
 /**
- * Fetch all posts, products, services, and reviews from Cloudflare Worker
+ * Fetch all posts, products, services, reviews, categories, and orders from Cloudflare Worker
  */
 export async function fetchFromCloudflare(
   config: CloudflareConfig
@@ -221,10 +227,12 @@ export async function fetchFromCloudflare(
           products: Array.isArray(data.products) ? data.products : [],
           serviceCategories: Array.isArray(data.serviceCategories) ? data.serviceCategories : [],
           reviews: Array.isArray(data.reviews) ? data.reviews : [],
+          orders: Array.isArray(data.orders) ? data.orders : [],
+          productCategories: Array.isArray(data.productCategories) ? data.productCategories : [],
           version: data.version || "1.0.0",
           lastUpdated: data.lastUpdated || new Date().toISOString(),
         },
-        message: `Đã tải về ${data.posts?.length || 0} bài viết, ${data.products?.length || 0} sản phẩm, ${data.serviceCategories?.length || 0} danh mục dịch vụ & ${data.reviews?.length || 0} đánh giá từ Cloudflare.`,
+        message: `Đã tải về ${data.posts?.length || 0} bài viết, ${data.products?.length || 0} sản phẩm, ${data.serviceCategories?.length || 0} danh mục dịch vụ, ${data.reviews?.length || 0} đánh giá & ${data.orders?.length || 0} đơn hàng từ Cloudflare.`,
       };
     } else {
       return {

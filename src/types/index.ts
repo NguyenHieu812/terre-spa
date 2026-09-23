@@ -38,7 +38,36 @@ export interface Product {
   volumeOrWeight?: string; // e.g. "300ml", "100g"
   ingredients?: string[];
   usageInstructions?: string;
+  metaTitle?: string; // SEO Google Title
+  metaDescription?: string; // SEO Google Description
+  keywords?: string; // SEO Keywords
   updatedAt?: string;
+}
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  productThumbnail?: string;
+  price: number;
+  quantity: number;
+  volumeOrWeight?: string;
+}
+
+export type OrderStatus = "pending" | "confirmed" | "shipping" | "completed" | "cancelled";
+
+export interface Order {
+  id: string; // e.g. "ORD-1790092106735" or "ORD-2026-001"
+  customerName: string;
+  customerPhone: string;
+  customerAddress?: string;
+  customerNotes?: string;
+  items: OrderItem[];
+  totalAmount: number;
+  status: OrderStatus;
+  createdAt: string;
+  updatedAt?: string;
+  source?: string; // "website_product_modal" | "website_booking" | "direct"
+  adminNotes?: string; // Ghi chú tư vấn, chăm sóc khách hàng
 }
 
 export interface CloudflareConfig {
@@ -86,6 +115,8 @@ export interface AppDataPayload {
   products: Product[];
   serviceCategories?: ServiceCategory[];
   reviews?: CustomerReview[];
+  orders?: Order[];
+  productCategories?: string[];
   version: string;
   lastUpdated: string;
 }
@@ -102,6 +133,7 @@ export interface AdminPermissions {
   products: CrudPermission;
   services: CrudPermission;
   reviews: CrudPermission;
+  orders?: CrudPermission;
   cloudflare?: {
     view: boolean;
     sync: boolean;
@@ -120,4 +152,5 @@ export interface AdminUser {
   lastLogin?: string;
   isActive?: boolean;
 }
+
 

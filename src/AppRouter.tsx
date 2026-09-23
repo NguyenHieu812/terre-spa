@@ -20,8 +20,10 @@ const AppContent: React.FC = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/:slug" element={<ProductsPage />} />
         <Route path="/posts" element={<PostsPage />} />
         <Route path="/posts/:id" element={<PostDetailPage />} />
+        <Route path="/posts/:slug" element={<PostDetailPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>

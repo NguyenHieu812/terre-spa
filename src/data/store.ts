@@ -1,4 +1,4 @@
-import { Post, Product, ServiceCategory, SpaService, CloudflareConfig, CustomerReview } from "../types";
+import { Post, Product, ServiceCategory, SpaService, CloudflareConfig, CustomerReview, Order, OrderStatus } from "../types";
 import {
   getDefaultCloudflareConfig,
   saveCloudflareConfig,
@@ -17,6 +17,8 @@ export const POSTS_STORAGE_KEY = "terre_spa_posts_data";
 export const PRODUCTS_STORAGE_KEY = "terre_spa_products_data";
 export const SERVICES_STORAGE_KEY = "terre_spa_services_data";
 export const REVIEWS_STORAGE_KEY = "terre_spa_reviews_data";
+export const ORDERS_STORAGE_KEY = "terre_spa_orders_data";
+export const PRODUCT_CATEGORIES_STORAGE_KEY = "terre_spa_product_categories_data";
 
 export const INITIAL_SERVICE_CATEGORIES: ServiceCategory[] = [
   {
@@ -199,7 +201,67 @@ export const INITIAL_POSTS: Post[] = [
   },
 ];
 
+export const DEFAULT_PRODUCT_CATEGORIES: string[] = [
+  "Chăm sóc tóc",
+  "Chăm sóc da",
+  "Dưỡng sinh thư giãn",
+  "Combo quà tặng",
+  "Tinh dầu & Nến thơm",
+  "Sản phẩm phục hồi",
+];
+
+export const getStoredProductCategories = (): string[] => {
+  try {
+    const saved = localStorage.getItem(PRODUCT_CATEGORIES_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+  return DEFAULT_PRODUCT_CATEGORIES;
+};
+
+export const saveProductCategories = (categories: string[]): void => {
+  try {
+    const clean = Array.from(new Set(categories.map((c) => c.trim()).filter(Boolean)));
+    localStorage.setItem(PRODUCT_CATEGORIES_STORAGE_KEY, JSON.stringify(clean));
+    recordLocalMutation();
+  } catch (e) {}
+};
+
+export const addProductCategory = (newCat: string): string[] => {
+  const trimmed = newCat.trim();
+  if (!trimmed) return getStoredProductCategories();
+  const current = getStoredProductCategories();
+  if (!current.includes(trimmed)) {
+    const updated = [...current, trimmed];
+    saveProductCategories(updated);
+    return updated;
+  }
+  return current;
+};
+
 export const INITIAL_PRODUCTS: Product[] = [
+  {
+    id: "prod-1790092106735",
+    name: "BISA DERMA HamadLAB 25g – Kem Phục Hồi, Làm Dịu & Dưỡng Ẩm Da",
+    slug: "bisa-derma-hamadlab-25g-kem-phuc-hoi-lam-diu-duong-am-da",
+    category: "Chăm sóc da",
+    price: 189000,
+    originalPrice: 250000,
+    thumbnail: facialCareImg,
+    shortDesc: "Kem dưỡng phục hồi da yếu, làm dịu tức thì kích ứng, mẩn đỏ sau treatment hoặc nặn mụn với phức hợp rau má & B5.",
+    fullDesc: "BISA DERMA HamadLAB là giải pháp chăm sóc và làm lành chuyên sâu cho làn da nhạy cảm, da sau nặn mụn hoặc sau liệu trình peel/laser. Công thức lành tính giúp làm dịu cảm giác châm chích, tái tạo hàng rào màng ẩm sinh học tự nhiên và ngăn ngừa thâm mụn hiệu quả.",
+    inStock: true,
+    featured: true,
+    rating: 5.0,
+    reviewCount: 42,
+    volumeOrWeight: "25g",
+    ingredients: ["Chiết xuất rau má Centella", "D-Panthenol (Vitamin B5)", "Hyaluronic Acid đa phân tử", "Ceramide NP", "Madecassoside"],
+    usageInstructions: "Sau khi làm sạch da, lấy một lượng kem vừa đủ thoa đều lên vùng da cần làm dịu và phục hồi. Dùng 2 lần/ngày vào buổi sáng và tối.",
+    metaTitle: "Kem Phục Hồi Da BISA DERMA HamadLAB 25g Chính Hãng | Terre Spa",
+    metaDescription: "Kem phục hồi da yếu, làm dịu kích ứng và phục hồi hàng rào màng ẩm tự nhiên sau liệu trình spa với chiết xuất thảo mộc dịu lành.",
+  },
   {
     id: "prod-1",
     name: "Dầu Gội Thảo Dược Bồ Kết Cô Đặc Terre Spa (500ml)",
@@ -217,6 +279,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     volumeOrWeight: "500ml",
     ingredients: ["Bồ kết nướng", "Vỏ bưởi da xanh", "Hương nhu trắng", "Cỏ mần trầu", "Hà thủ ô", "Sả chanh"],
     usageInstructions: "Làm ướt tóc, lấy 1 lượng vừa đủ tạo bọt nhẹ và massage đều khắp da đầu trong 3-5 phút, sau đó xả sạch với nước.",
+    metaTitle: "Dầu Gội Thảo Dược Bồ Kết Cô Đặc 500ml | Terre Spa",
+    metaDescription: "Dầu gội bồ kết nấu cô đặc thủ công chuẩn dưỡng sinh Đông Y, giảm gãy rụng và kích mọc tóc chắc khỏe tự nhiên.",
   },
   {
     id: "prod-2",
@@ -235,41 +299,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     volumeOrWeight: "100ml",
     ingredients: ["Tinh dầu vỏ bưởi hồng ép lạnh", "Hydrosol hoa bưởi", "D-Panthenol (Vitamin B5)", "Tinh dầu tràm trà"],
     usageInstructions: "Xịt trực tiếp vào chân tóc và da đầu khi tóc sạch (khô hoặc ẩm), massage nhẹ nhàng 2 phút. Dùng 2 lần/ngày sáng và tối.",
-  },
-  {
-    id: "prod-3",
-    name: "Serum Thảo Mộc Phục Hồi Da Chuyên Sâu Terre Glow Essence",
-    slug: "serum-thao-moc-phuc-hoi-da-chuyen-sau-terre-glow",
-    category: "Chăm sóc da",
-    price: 490000,
-    originalPrice: 650000,
-    thumbnail: facialCareImg,
-    shortDesc: "Phục hồi làn da mỏng đỏ, làm dịu kích ứng, cấp ẩm sâu và củng cố hàng rào bảo vệ da với chiết xuất rau má lên men.",
-    fullDesc: "Serum cao cấp ứng dụng tại các phòng điều trị Terre Spa. Cung cấp phức hợp rau má Madagascar, Hyaluronic Acid đa phân tử và Ceramide NP, giúp làm dịu tức thì tình trạng ửng đỏ, tăng độ đàn hồi và giúp da căng bóng tự nhiên.",
-    inStock: true,
-    featured: true,
-    rating: 4.8,
-    reviewCount: 29,
-    volumeOrWeight: "50ml",
-    ingredients: ["Centella Asiatica Extract 65%", "Hyaluronic Acid Multi-weight", "Ceramide NP", "Madecassoside", "Niacinamide 2%"],
-    usageInstructions: "Sau bước toner/nước hoa hồng, nhỏ 3-4 giọt thoa đều khắp mặt và vỗ nhẹ cho dưỡng chất thẩm thấu.",
-  },
-  {
-    id: "prod-4",
-    name: "Cao Thảo Dược Ngâm Chân Dưỡng Sinh Đông Y Terre Relax (Hộp 30 gói)",
-    slug: "cao-thao-duoc-ngam-chan-duong-sinh-terre-relax",
-    category: "Dưỡng sinh thư giãn",
-    price: 150000,
-    thumbnail: SanhChoSangTrong,
-    shortDesc: "Thảo dược ngâm chân khử hàn, kích thích huyệt Dũng Tuyền, giải tỏa mệt mỏi và hỗ trợ giấc ngủ sâu.",
-    fullDesc: "Gói bột thảo mộc tự nhiên bao gồm gừng gió, quế chi, ngải cứu, ngải diệp, hoa hồi. Khi ngâm trong nước ấm giúp lưu thông khí huyết toàn thân, giảm tê bì chân tay và lạnh chân vào mùa đông.",
-    inStock: true,
-    featured: false,
-    rating: 4.9,
-    reviewCount: 52,
-    volumeOrWeight: "Hộp 30 gói túi lọc",
-    ingredients: ["Gừng gió", "Quế chi", "Ngải cứu sao vàng", "Hoa hồi", "Muối khoáng biển hồng"],
-    usageInstructions: "Hãm 1-2 túi lọc trong 1-2 lít nước sôi 5 phút, sau đó pha thêm nước ấm ngâm chân 20-30 phút trước khi đi ngủ.",
+    metaTitle: "Tinh Dầu Bưởi Hồng Kích Mọc Tóc 100ml | Terre Herbal",
+    metaDescription: "Tinh dầu vỏ bưởi hồng ép lạnh kích thích mọc tóc con, làm dày nang tóc và nuôi dưỡng mái tóc bóng mượt bồng bềnh.",
   },
   {
     id: "prod-5",
@@ -288,23 +319,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     volumeOrWeight: "Set 4 món",
     ingredients: ["Trọn bộ sản phẩm organic chăm sóc thân & tâm"],
     usageInstructions: "Bộ sản phẩm có hướng dẫn sử dụng chi tiết đính kèm trong hộp quà.",
-  },
-  {
-    id: "prod-6",
-    name: "Kem Chống Nắng Vật Lý Thảo Mộc Dịu Nhẹ SPF50+ PA++++ (60g)",
-    slug: "kem-chong-nang-vat-ly-thao-moc-terre-spf50",
-    category: "Chăm sóc da",
-    price: 380000,
-    thumbnail: facialCareImg,
-    shortDesc: "Chống nắng phổ rộng bảo vệ da toàn diện, kiềm dầu thoáng mịn, nâng tone tự nhiên không gây vệt trắng.",
-    fullDesc: "Kem chống nắng 100% màng lọc khoáng chất vô cơ an toàn cho da mụn và da nhạy cảm sau trị liệu. Tích hợp chiết xuất trà xanh và cúc la mã giúp làm mát da dưới nắng hè.",
-    inStock: true,
-    featured: false,
-    rating: 4.7,
-    reviewCount: 23,
-    volumeOrWeight: "60g",
-    ingredients: ["Zinc Oxide 15%", "Titanium Dioxide", "Green Tea Extract", "Chamomile Flower Water"],
-    usageInstructions: "Thoa đều trước khi ra ngoài 15-20 phút. Thoa lại sau mỗi 3-4 giờ nếu hoạt động nhiều ngoài trời.",
+    metaTitle: "Set Quà Tặng Thảo Dược Cao Cấp Terre Deluxe Spa Giftset",
+    metaDescription: "Hộp quà tặng chăm sóc sức khỏe và thư giãn cao cấp từ Terre Spa, món quà hoàn hảo gửi trọn yêu thương.",
   },
 ];
 
@@ -313,6 +329,7 @@ export const LAST_MUTATION_STORAGE_KEY = "terre_spa_last_local_mutation";
 export const DELETED_POST_IDS_KEY = "terre_spa_deleted_post_ids";
 export const DELETED_PRODUCT_IDS_KEY = "terre_spa_deleted_product_ids";
 export const DELETED_SERVICE_IDS_KEY = "terre_spa_deleted_service_ids";
+export const DELETED_ORDER_IDS_KEY = "terre_spa_deleted_order_ids";
 
 // Tombstone tracking helpers
 export const getDeletedPostIds = (): Set<string> => {
@@ -657,6 +674,175 @@ export const saveStoredReviews = (reviews: CustomerReview[]): void => {
   }
 };
 
+// Tombstone tracking for Orders
+export const getDeletedOrderIds = (): Set<string> => {
+  try {
+    const saved = localStorage.getItem(DELETED_ORDER_IDS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch (e) {}
+  return new Set();
+};
+
+export const addDeletedOrderId = (id: string): void => {
+  try {
+    const current = getDeletedOrderIds();
+    current.add(id);
+    localStorage.setItem(DELETED_ORDER_IDS_KEY, JSON.stringify(Array.from(current)));
+  } catch (e) {}
+};
+
+export const clearDeletedOrderId = (id: string): void => {
+  try {
+    const current = getDeletedOrderIds();
+    if (current.delete(id)) {
+      localStorage.setItem(DELETED_ORDER_IDS_KEY, JSON.stringify(Array.from(current)));
+    }
+  } catch (e) {}
+};
+
+export const INITIAL_ORDERS: Order[] = [
+  {
+    id: "ORD-2026-0901",
+    customerName: "Nguyễn Thu Hà",
+    customerPhone: "0912 345 678",
+    customerAddress: "P.502 Chung cư Eco Green, 286 Nguyễn Xiển, Thanh Xuân, Hà Nội",
+    customerNotes: "Giao giờ hành chính, gọi trước khi giao giúp mình.",
+    items: [
+      {
+        productId: "prod-1790092106735",
+        productName: "BISA DERMA HamadLAB 25g – Kem Phục Hồi, Làm Dịu & Dưỡng Ẩm Da",
+        productThumbnail: facialCareImg,
+        price: 189000,
+        quantity: 2,
+        volumeOrWeight: "25g",
+      },
+    ],
+    totalAmount: 378000,
+    status: "confirmed",
+    createdAt: "2026-09-21T14:30:00.000Z",
+    source: "website_product_modal",
+    adminNotes: "Đã gọi điện xác nhận đơn. Khách hẹn ship trước 17h chiều nay.",
+  },
+  {
+    id: "ORD-2026-0902",
+    customerName: "Trần Minh Quang",
+    customerPhone: "0988 765 432",
+    customerAddress: "Số 15 Ngõ 282 Kim Giang, Hoàng Mai, Hà Nội",
+    customerNotes: "Mang giúp mình set quà đóng hộp đẹp để biếu mẹ.",
+    items: [
+      {
+        productId: "prod-5",
+        productName: "Set Quà Tặng Thư Giãn Cao Cấp Terre Deluxe Spa Giftset",
+        productThumbnail: massageDetail,
+        price: 890000,
+        quantity: 1,
+        volumeOrWeight: "Set 4 món",
+      },
+    ],
+    totalAmount: 890000,
+    status: "pending",
+    createdAt: "2026-09-22T08:15:00.000Z",
+    source: "website_product_modal",
+    adminNotes: "Khách mới đặt sáng nay, cần nhân viên gọi tư vấn thêm về thiệp chúc mừng.",
+  },
+];
+
+// Helper functions for Orders
+export const getStoredOrders = (): Order[] => {
+  const deletedIds = getDeletedOrderIds();
+  try {
+    const saved = localStorage.getItem(ORDERS_STORAGE_KEY);
+    if (saved !== null) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((o) => !deletedIds.has(o.id));
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to load orders from LocalStorage", e);
+  }
+  return INITIAL_ORDERS.filter((o) => !deletedIds.has(o.id));
+};
+
+export const saveStoredOrders = (orders: Order[]): void => {
+  try {
+    const prevOrders = getStoredOrders();
+    const currentIds = new Set(orders.map((o) => o.id));
+    prevOrders.forEach((o) => {
+      if (!currentIds.has(o.id)) addDeletedOrderId(o.id);
+    });
+    orders.forEach((o) => clearDeletedOrderId(o.id));
+
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+    recordLocalMutation();
+    checkAndAutoSync({
+      posts: getStoredPosts(),
+      products: getStoredProducts(),
+      serviceCategories: getStoredServices(),
+      reviews: getStoredReviews(),
+      orders,
+      productCategories: getStoredProductCategories(),
+      deletedOrderIds: Array.from(getDeletedOrderIds()),
+    });
+  } catch (e) {
+    console.error("Failed to save orders to LocalStorage", e);
+  }
+};
+
+export const createOrder = (orderData: {
+  customerName: string;
+  customerPhone: string;
+  customerAddress?: string;
+  customerNotes?: string;
+  items: Order["items"];
+  totalAmount: number;
+  source?: string;
+  adminNotes?: string;
+}): Order => {
+  const newOrder: Order = {
+    id: `ORD-${Date.now().toString().slice(-6)}`,
+    customerName: orderData.customerName.trim(),
+    customerPhone: orderData.customerPhone.trim(),
+    customerAddress: orderData.customerAddress?.trim(),
+    customerNotes: orderData.customerNotes?.trim(),
+    items: orderData.items,
+    totalAmount: orderData.totalAmount,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    source: orderData.source || "website_product_modal",
+    adminNotes: orderData.adminNotes,
+  };
+
+  const currentOrders = getStoredOrders();
+  const updatedOrders = [newOrder, ...currentOrders];
+  saveStoredOrders(updatedOrders);
+  return newOrder;
+};
+
+export const updateOrderStatus = (orderId: string, status: OrderStatus, adminNotes?: string): void => {
+  const orders = getStoredOrders();
+  const idx = orders.findIndex((o) => o.id === orderId);
+  if (idx >= 0) {
+    orders[idx] = {
+      ...orders[idx],
+      status,
+      adminNotes: adminNotes !== undefined ? adminNotes : orders[idx].adminNotes,
+      updatedAt: new Date().toISOString(),
+    };
+    saveStoredOrders(orders);
+  }
+};
+
+export const deleteOrder = (orderId: string): void => {
+  const orders = getStoredOrders().filter((o) => o.id !== orderId);
+  addDeletedOrderId(orderId);
+  saveStoredOrders(orders);
+};
+
 /**
  * Auto sync helper - Pushes local changes up to Cloudflare
  */
@@ -665,9 +851,12 @@ async function checkAndAutoSync(payload: {
   products: Product[];
   serviceCategories?: ServiceCategory[];
   reviews?: CustomerReview[];
+  orders?: Order[];
+  productCategories?: string[];
   deletedPostIds?: string[];
   deletedProductIds?: string[];
   deletedServiceIds?: string[];
+  deletedOrderIds?: string[];
 }) {
   const config = getDefaultCloudflareConfig();
   if (config.workerUrl && config.autoSync) {
@@ -705,7 +894,7 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
 
     const res = await fetchFromCloudflare(config);
     if (res.success && res.data) {
-      const { posts, products, serviceCategories, reviews, lastUpdated } = res.data;
+      const { posts, products, serviceCategories, reviews, orders, productCategories, lastUpdated } = res.data;
 
       const lastLocalMutation = parseInt(localStorage.getItem(LAST_MUTATION_STORAGE_KEY) || "0", 10);
       const serverTimestamp = lastUpdated ? new Date(lastUpdated).getTime() : 0;
@@ -714,6 +903,7 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
       const deletedPostIds = getDeletedPostIds();
       const deletedProductIds = getDeletedProductIds();
       const deletedServiceIds = getDeletedServiceIds();
+      const deletedOrderIds = getDeletedOrderIds();
 
       const filteredPosts = Array.isArray(posts) ? posts.filter((p) => !deletedPostIds.has(p.id)) : [];
       const filteredProducts = Array.isArray(products) ? products.filter((p) => !deletedProductIds.has(p.id)) : [];
@@ -728,21 +918,29 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
             }))
         : [];
       const filteredReviews = Array.isArray(reviews) ? reviews : [];
+      const filteredOrders = Array.isArray(orders) ? orders.filter((o) => !deletedOrderIds.has(o.id)) : [];
+      const filteredCategories = Array.isArray(productCategories) && productCategories.length > 0
+        ? productCategories
+        : getStoredProductCategories();
 
       // Check if server returned any zombie items that should be deleted
       const hadZombiePost = Array.isArray(posts) && posts.some((p) => deletedPostIds.has(p.id));
       const hadZombieProduct = Array.isArray(products) && products.some((p) => deletedProductIds.has(p.id));
+      const hadZombieOrder = Array.isArray(orders) && orders.some((o) => deletedOrderIds.has(o.id));
 
-      if (hadZombiePost || hadZombieProduct) {
+      if (hadZombiePost || hadZombieProduct || hadZombieOrder) {
         console.debug("Server had deleted items. Pushing local cleanup to Cloudflare...");
         checkAndAutoSync({
           posts: filteredPosts,
           products: filteredProducts,
           serviceCategories: filteredServices,
           reviews: filteredReviews,
+          orders: filteredOrders,
+          productCategories: filteredCategories,
           deletedPostIds: Array.from(deletedPostIds),
           deletedProductIds: Array.from(deletedProductIds),
           deletedServiceIds: Array.from(deletedServiceIds),
+          deletedOrderIds: Array.from(deletedOrderIds),
         });
       }
 
@@ -755,9 +953,12 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
           products: getStoredProducts(),
           serviceCategories: getStoredServices(),
           reviews: getStoredReviews(),
+          orders: getStoredOrders(),
+          productCategories: getStoredProductCategories(),
           deletedPostIds: Array.from(deletedPostIds),
           deletedProductIds: Array.from(deletedProductIds),
           deletedServiceIds: Array.from(deletedServiceIds),
+          deletedOrderIds: Array.from(deletedOrderIds),
         });
         return true;
       }
@@ -780,6 +981,14 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
         localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(filteredReviews));
         hasUpdates = true;
       }
+      if (Array.isArray(orders)) {
+        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(filteredOrders));
+        hasUpdates = true;
+      }
+      if (Array.isArray(productCategories) && productCategories.length > 0) {
+        localStorage.setItem(PRODUCT_CATEGORIES_STORAGE_KEY, JSON.stringify(filteredCategories));
+        hasUpdates = true;
+      }
 
       if (hasUpdates) {
         window.dispatchEvent(
@@ -789,6 +998,8 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
               products: filteredProducts,
               serviceCategories: filteredServices,
               reviews: filteredReviews,
+              orders: filteredOrders,
+              productCategories: filteredCategories,
               timestamp: lastUpdated || new Date().toISOString(),
             },
           })
@@ -803,3 +1014,4 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
   }
   return false;
 };
+

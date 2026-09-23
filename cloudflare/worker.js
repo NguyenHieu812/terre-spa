@@ -91,9 +91,36 @@ function mapDbRowToProduct(row) {
     volumeOrWeight: row.volume_or_weight,
     ingredients,
     usageInstructions: row.usage_instructions,
+    metaTitle: row.meta_title || undefined,
+    metaDescription: row.meta_description || undefined,
     updatedAt: row.updated_at,
   };
 }
+
+// Helper to parse SQL Order row back to Order object
+function mapDbRowToOrder(row) {
+  if (!row) return null;
+  let items = [];
+  try {
+    items = typeof row.items === "string" ? JSON.parse(row.items) : row.items || [];
+  } catch (e) {}
+
+  return {
+    id: row.id,
+    customerName: row.customer_name,
+    customerPhone: row.customer_phone,
+    customerAddress: row.customer_address || "",
+    customerNotes: row.customer_notes || "",
+    items,
+    totalAmount: row.total_amount,
+    status: row.status || "pending",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    source: row.source || "website_product_modal",
+    adminNotes: row.admin_notes || "",
+  };
+}
+
 
 export default {
   async fetch(request, env, ctx) {
@@ -175,7 +202,24 @@ export default {
             volume_or_weight TEXT,
             ingredients TEXT,
             usage_instructions TEXT,
+            meta_title TEXT,
+            meta_description TEXT,
             updated_at TEXT
+          );
+
+          CREATE TABLE IF NOT EXISTS orders (
+            id TEXT PRIMARY KEY,
+            customer_name TEXT NOT NULL,
+            customer_phone TEXT NOT NULL,
+            customer_address TEXT,
+            customer_notes TEXT,
+            items TEXT NOT NULL,
+            total_amount REAL NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT NOT NULL,
+            updated_at TEXT,
+            source TEXT DEFAULT 'website_product_modal',
+            admin_notes TEXT
           );
 
           CREATE TABLE IF NOT EXISTS service_categories (
@@ -204,6 +248,7 @@ export default {
             value TEXT NOT NULL,
             updated_at TEXT NOT NULL
           );
+
         `);
 
         return jsonResponse({ success: true, message: "D1 Database tables initialized successfully!" });
@@ -216,6 +261,7 @@ export default {
           let products = [];
           let serviceCategories = [];
           let reviews = [];
+          let orders = [];
           let dbLastUpdated = null;
 
           if (db) {
@@ -252,6 +298,11 @@ export default {
               }));
 
               try {
+                const ordRows = await db.prepare("SELECT * FROM orders ORDER BY created_at DESC").all();
+                orders = (ordRows.results || []).map(mapDbRowToOrder);
+              } catch (e) {}
+
+              try {
                 const metaRow = await db.prepare("SELECT value FROM app_meta WHERE key = 'last_updated'").first();
                 if (metaRow && metaRow.value) {
                   dbLastUpdated = metaRow.value;
@@ -267,12 +318,14 @@ export default {
             const rawProducts = await kv.get("terre_products", { type: "json" });
             const rawSvcs = await kv.get("terre_services", { type: "json" });
             const rawReviews = await kv.get("terre_reviews", { type: "json" });
+            const rawOrders = await kv.get("terre_orders", { type: "json" });
             const rawMeta = await kv.get("terre_meta", { type: "json" });
 
             if (rawPosts && (!posts || posts.length === 0)) posts = rawPosts;
             if (rawProducts && (!products || products.length === 0)) products = rawProducts;
             if (rawSvcs && (!serviceCategories || serviceCategories.length === 0)) serviceCategories = rawSvcs;
             if (rawReviews) reviews = rawReviews;
+            if (rawOrders && (!orders || orders.length === 0)) orders = rawOrders;
             if (!dbLastUpdated && rawMeta?.lastUpdated) {
               dbLastUpdated = rawMeta.lastUpdated;
             }
@@ -284,14 +337,17 @@ export default {
             products,
             serviceCategories,
             reviews,
+            orders,
             databaseType: db ? "Cloudflare D1 (SQL)" : "Cloudflare KV",
             totalPosts: posts.length,
             totalProducts: products.length,
             totalServiceCategories: serviceCategories.length,
             totalReviews: reviews.length,
+            totalOrders: orders.length,
             lastUpdated: dbLastUpdated || "2026-01-01T00:00:00.000Z",
           });
         }
+
 
         if (request.method === "POST") {
           if (!verifyAuth(request, env)) {
@@ -299,7 +355,7 @@ export default {
           }
 
           const body = await request.json();
-          const { posts, products, serviceCategories, reviews, deletedPostIds, deletedProductIds, deletedServiceIds } = body;
+          const { posts, products, serviceCategories, reviews, orders, deletedPostIds, deletedProductIds, deletedServiceIds, deletedOrderIds } = body;
           const timestamp = body.timestamp || new Date().toISOString();
 
           // Save to Cloudflare D1 (Relational SQL Database)
@@ -316,6 +372,10 @@ export default {
             if (Array.isArray(deletedServiceIds) && deletedServiceIds.length > 0) {
               const dPlaceholders = deletedServiceIds.map(() => "?").join(",");
               await db.prepare(`DELETE FROM services WHERE id IN (${dPlaceholders})`).bind(...deletedServiceIds).run();
+            }
+            if (Array.isArray(deletedOrderIds) && deletedOrderIds.length > 0) {
+              const dPlaceholders = deletedOrderIds.map(() => "?").join(",");
+              await db.prepare(`DELETE FROM orders WHERE id IN (${dPlaceholders})`).bind(...deletedOrderIds).run();
             }
 
             // 2. Save Posts to D1
@@ -398,8 +458,8 @@ export default {
                       id, name, slug, category, price, original_price,
                       thumbnail, images, short_desc, full_desc, in_stock,
                       featured, rating, review_count, volume_or_weight,
-                      ingredients, usage_instructions, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      ingredients, usage_instructions, meta_title, meta_description, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                       name = excluded.name,
                       slug = excluded.slug,
@@ -417,6 +477,8 @@ export default {
                       volume_or_weight = excluded.volume_or_weight,
                       ingredients = excluded.ingredients,
                       usage_instructions = excluded.usage_instructions,
+                      meta_title = excluded.meta_title,
+                      meta_description = excluded.meta_description,
                       updated_at = excluded.updated_at`
                   )
                   .bind(
@@ -437,11 +499,53 @@ export default {
                     prod.volumeOrWeight || "",
                     JSON.stringify(prod.ingredients || []),
                     prod.usageInstructions || "",
+                    prod.metaTitle || null,
+                    prod.metaDescription || null,
                     prod.updatedAt || timestamp
                   )
                   .run();
               }
             }
+
+            // 3.5 Save Orders to D1
+            if (Array.isArray(orders)) {
+              for (const ord of orders) {
+                await db
+                  .prepare(
+                    `INSERT INTO orders (
+                      id, customer_name, customer_phone, customer_address,
+                      customer_notes, items, total_amount, status, created_at,
+                      updated_at, source, admin_notes
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      customer_name = excluded.customer_name,
+                      customer_phone = excluded.customer_phone,
+                      customer_address = excluded.customer_address,
+                      customer_notes = excluded.customer_notes,
+                      items = excluded.items,
+                      total_amount = excluded.total_amount,
+                      status = excluded.status,
+                      updated_at = excluded.updated_at,
+                      admin_notes = excluded.admin_notes`
+                  )
+                  .bind(
+                    ord.id,
+                    ord.customerName || "",
+                    ord.customerPhone || "",
+                    ord.customerAddress || "",
+                    ord.customerNotes || "",
+                    JSON.stringify(ord.items || []),
+                    ord.totalAmount || 0,
+                    ord.status || "pending",
+                    ord.createdAt || timestamp,
+                    ord.updatedAt || timestamp,
+                    ord.source || "website_product_modal",
+                    ord.adminNotes || ""
+                  )
+                  .run();
+              }
+            }
+
 
             // 4. Save Service Categories & Services to D1
             if (Array.isArray(serviceCategories)) {
@@ -538,14 +642,17 @@ export default {
             if (Array.isArray(products)) await kv.put("terre_products", JSON.stringify(products));
             if (Array.isArray(serviceCategories)) await kv.put("terre_services", JSON.stringify(serviceCategories));
             if (Array.isArray(reviews)) await kv.put("terre_reviews", JSON.stringify(reviews));
+            if (Array.isArray(orders)) await kv.put("terre_orders", JSON.stringify(orders));
             await kv.put("terre_meta", JSON.stringify({
               lastUpdated: timestamp,
               countPosts: posts?.length || 0,
               countProducts: products?.length || 0,
               countServices: serviceCategories?.length || 0,
-              countReviews: reviews?.length || 0
+              countReviews: reviews?.length || 0,
+              countOrders: orders?.length || 0
             }));
           }
+
 
           return jsonResponse({
             success: true,

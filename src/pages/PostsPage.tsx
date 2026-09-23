@@ -127,7 +127,7 @@ export const PostsPage: React.FC = () => {
                   </div>
 
                   <h2 className="text-2xl md:text-3xl font-serif font-bold text-brand-950 leading-tight group-hover:text-brand-700 transition-colors">
-                    <Link to={`/posts/${featuredPost.id}`}>{featuredPost.title}</Link>
+                    <Link to={`/posts/${featuredPost.slug || featuredPost.id}`}>{featuredPost.title}</Link>
                   </h2>
 
                   <p className="text-xs md:text-sm text-brand-600 leading-relaxed line-clamp-3">
@@ -147,7 +147,7 @@ export const PostsPage: React.FC = () => {
                   </div>
 
                   <Link
-                    to={`/posts/${featuredPost.id}`}
+                    to={`/posts/${featuredPost.slug || featuredPost.id}`}
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-900 hover:bg-brand-950 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition-all shadow-sm"
                   >
                     Đọc tiếp <ArrowRight className="w-3.5 h-3.5" />
@@ -219,7 +219,7 @@ export const PostsPage: React.FC = () => {
                   transition={{ delay: idx * 0.05 }}
                   className="bg-white rounded-2xl overflow-hidden border border-brand-100 shadow-sm hover:shadow-xl hover:shadow-brand-950/5 transition-all duration-300 flex flex-col group"
                 >
-                  <Link to={`/posts/${post.id}`} className="aspect-16/10 overflow-hidden bg-brand-100 relative block">
+                  <Link to={`/posts/${post.slug || post.id}`} className="aspect-16/10 overflow-hidden bg-brand-100 relative block">
                     <img
                       src={post.coverImage}
                       alt={post.title}
@@ -244,7 +244,7 @@ export const PostsPage: React.FC = () => {
                       </div>
 
                       <h3 className="font-serif font-bold text-lg text-brand-950 group-hover:text-brand-700 transition-colors line-clamp-2 leading-snug">
-                        <Link to={`/posts/${post.id}`}>{post.title}</Link>
+                        <Link to={`/posts/${post.slug || post.id}`}>{post.title}</Link>
                       </h3>
 
                       <p className="text-xs text-brand-600 line-clamp-3 leading-relaxed">
@@ -255,7 +255,7 @@ export const PostsPage: React.FC = () => {
                     <div className="pt-4 border-t border-brand-100 flex items-center justify-between">
                       <span className="text-xs text-brand-700 font-medium">{post.author.name}</span>
                       <Link
-                        to={`/posts/${post.id}`}
+                        to={`/posts/${post.slug || post.id}`}
                         className="text-xs font-semibold text-brand-900 hover:text-brand-600 flex items-center gap-1 uppercase tracking-wider group-hover:translate-x-0.5 transition-transform"
                       >
                         Đọc bài <ArrowRight className="w-3.5 h-3.5" />
