@@ -3,7 +3,20 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { name, phone, service, date, time, notes } = req.body;
+  const { name, phone, service, date, time, notes } = req.body || {};
+
+  // Validate customer name
+  if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    return res.status(400).json({ error: 'Họ và tên không hợp lệ (tối thiểu 2 ký tự).' });
+  }
+
+  // Validate Vietnamese phone number
+  const cleanPhone = (phone || '').toString().replace(/[\s.\-()]/g, '');
+  const vnPhoneRegex = /^(?:(?:\+?84)|0)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9]|2[48][0-9])[0-9]{7}$/;
+  if (!vnPhoneRegex.test(cleanPhone)) {
+    return res.status(400).json({ error: 'Số điện thoại không hợp lệ (Ví dụ: 0912 345 678).' });
+  }
+
   const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
 
   if (!scriptUrl) {

@@ -26,6 +26,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import facialCareImg from "../../assets/images/spa_facial_care_1781704209004.jpg";
+import { isValidVietnamesePhone, isValidCustomerName, formatPhoneNumber } from "../../utils/validationUtils";
 
 interface OrderManagerProps {
   orders: Order[];
@@ -101,6 +102,8 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
   const [manualCustomerPhone, setManualCustomerPhone] = useState("");
   const [manualCustomerAddress, setManualCustomerAddress] = useState("");
   const [manualCustomerNotes, setManualCustomerNotes] = useState("");
+  const [manualNameError, setManualNameError] = useState("");
+  const [manualPhoneError, setManualPhoneError] = useState("");
   const [manualSelectedProductId, setManualSelectedProductId] = useState<string>(
     products[0]?.id || ""
   );
@@ -170,10 +173,31 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
 
   const handleCreateManualOrderSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualCustomerName.trim() || !manualCustomerPhone.trim()) {
-      alert("Vui lòng nhập họ tên và số điện thoại khách hàng.");
-      return;
+    let hasError = false;
+    const cleanName = manualCustomerName.trim();
+    const cleanPhone = manualCustomerPhone.trim();
+
+    if (!cleanName) {
+      setManualNameError("Vui lòng nhập họ tên khách hàng.");
+      hasError = true;
+    } else if (!isValidCustomerName(cleanName)) {
+      setManualNameError("Họ tên không hợp lệ (tối thiểu 2 ký tự).");
+      hasError = true;
+    } else {
+      setManualNameError("");
     }
+
+    if (!cleanPhone) {
+      setManualPhoneError("Vui lòng nhập số điện thoại.");
+      hasError = true;
+    } else if (!isValidVietnamesePhone(cleanPhone)) {
+      setManualPhoneError("Số điện thoại không hợp lệ (Ví dụ: 0912 345 678).");
+      hasError = true;
+    } else {
+      setManualPhoneError("");
+    }
+
+    if (hasError) return;
 
     const prod = products.find((p) => p.id === manualSelectedProductId) || products[0];
     const unitPrice = prod ? prod.price : 189000;
@@ -181,8 +205,8 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
 
     const newOrder: Order = {
       id: `ORD-${Date.now().toString().slice(-6)}`,
-      customerName: manualCustomerName.trim(),
-      customerPhone: manualCustomerPhone.trim(),
+      customerName: cleanName,
+      customerPhone: formatPhoneNumber(cleanPhone),
       customerAddress: manualCustomerAddress.trim(),
       customerNotes: manualCustomerNotes.trim(),
       items: [
@@ -210,6 +234,8 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
     setManualCustomerAddress("");
     setManualCustomerNotes("");
     setManualAdminNotes("");
+    setManualNameError("");
+    setManualPhoneError("");
     showToast(`Đã tạo đơn hàng mới #${newOrder.id} thành công!`);
   };
 
@@ -697,7 +723,7 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
             </div>
 
             <form onSubmit={handleCreateManualOrderSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-brand-800 uppercase mb-1">
                     Tên khách hàng *
@@ -706,10 +732,25 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
                     type="text"
                     required
                     value={manualCustomerName}
-                    onChange={(e) => setManualCustomerName(e.target.value)}
+                    onChange={(e) => {
+                      setManualCustomerName(e.target.value);
+                      if (manualNameError) setManualNameError("");
+                    }}
+                    onBlur={() => {
+                      if (manualCustomerName.trim() && !isValidCustomerName(manualCustomerName)) {
+                        setManualNameError("Họ tên không hợp lệ (tối thiểu 2 ký tự)");
+                      }
+                    }}
                     placeholder="Vd: Chị Mai, Anh Hùng..."
-                    className="w-full px-3.5 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600"
+                    className={`w-full px-3.5 py-2 text-xs border rounded-xl focus:outline-none transition-colors ${
+                      manualNameError ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/10" : "border-brand-200 focus:border-brand-600"
+                    }`}
                   />
+                  {manualNameError && (
+                    <p className="text-[11px] text-red-600 font-medium flex items-center gap-1 mt-1">
+                      <AlertCircle className="w-3 h-3 shrink-0" /> {manualNameError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -720,10 +761,25 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
                     type="tel"
                     required
                     value={manualCustomerPhone}
-                    onChange={(e) => setManualCustomerPhone(e.target.value)}
+                    onChange={(e) => {
+                      setManualCustomerPhone(e.target.value);
+                      if (manualPhoneError) setManualPhoneError("");
+                    }}
+                    onBlur={() => {
+                      if (manualCustomerPhone.trim() && !isValidVietnamesePhone(manualCustomerPhone)) {
+                        setManualPhoneError("Số điện thoại không hợp lệ (10 số)");
+                      }
+                    }}
                     placeholder="09xx xxx xxx"
-                    className="w-full px-3.5 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600 font-mono"
+                    className={`w-full px-3.5 py-2 text-xs border rounded-xl focus:outline-none font-mono transition-colors ${
+                      manualPhoneError ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/10" : "border-brand-200 focus:border-brand-600"
+                    }`}
                   />
+                  {manualPhoneError && (
+                    <p className="text-[11px] text-red-600 font-medium flex items-center gap-1 mt-1">
+                      <AlertCircle className="w-3 h-3 shrink-0" /> {manualPhoneError}
+                    </p>
+                  )}
                 </div>
               </div>
 

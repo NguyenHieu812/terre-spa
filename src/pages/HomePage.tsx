@@ -11,6 +11,7 @@ import { FeedbackCarousel } from "../components/FeedbackCarousel";
 import { Footer } from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { usePageSEO } from "../hooks/usePageSEO";
+import { isValidVietnamesePhone, isValidCustomerName, formatPhoneNumber } from "../utils/validationUtils";
 
 const HomePage: React.FC = () => {
   usePageSEO({
@@ -31,6 +32,8 @@ const HomePage: React.FC = () => {
     notes: "",
   });
 
+  const [nameError, setNameError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "idle" | "success" | "error"; message: string }>({ type: "idle", message: "" });
   const [selectedService, setSelectedService] = useState<any>(null);
@@ -131,17 +134,53 @@ const HomePage: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "name" && nameError) setNameError("");
+    if (name === "phone" && phoneError) setPhoneError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    let hasError = false;
+    const cleanName = formData.name.trim();
+    const cleanPhone = formData.phone.trim();
+
+    if (!cleanName) {
+      setNameError("Vui lòng nhập họ và tên.");
+      hasError = true;
+    } else if (!isValidCustomerName(cleanName)) {
+      setNameError("Họ và tên không hợp lệ (tối thiểu 2 ký tự).");
+      hasError = true;
+    } else {
+      setNameError("");
+    }
+
+    if (!cleanPhone) {
+      setPhoneError("Vui lòng nhập số điện thoại.");
+      hasError = true;
+    } else if (!isValidVietnamesePhone(cleanPhone)) {
+      setPhoneError("Số điện thoại không hợp lệ (Ví dụ: 0912 345 678).");
+      hasError = true;
+    } else {
+      setPhoneError("");
+    }
+
+    if (hasError) return;
+
     setLoading(true);
     setStatus({ type: "idle", message: "" });
     try {
+      const formattedPhone = formatPhoneNumber(cleanPhone);
+      const submissionData = {
+        ...formData,
+        name: cleanName,
+        phone: formattedPhone,
+      };
+
       const response = await fetch("/api/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       });
       
       let result: any = {};
@@ -157,6 +196,8 @@ const HomePage: React.FC = () => {
 
       setStatus({ type: "success", message: "Cảm ơn bạn! Lịch hẹn đã được xác nhận thành công." });
       setFormData((prev) => ({ ...prev, name: "", phone: "", notes: "" }));
+      setNameError("");
+      setPhoneError("");
     } catch (error: any) {
       console.error(error);
       setStatus({
@@ -361,13 +402,54 @@ const HomePage: React.FC = () => {
               </AnimatePresence>
 
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label htmlFor="name" className="text-xs font-medium uppercase tracking-wider text-brand-700">Họ và tên *</label>
-                  <input required id="name" name="name" value={formData.name} onChange={handleInputChange} className="w-full bg-brand-50 border border-brand-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" placeholder="Vd: Nguyễn Văn A" />
+                  <input
+                    required
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    onBlur={() => {
+                      if (formData.name.trim() && !isValidCustomerName(formData.name)) {
+                        setNameError("Họ và tên không hợp lệ (tối thiểu 2 ký tự)");
+                      }
+                    }}
+                    className={`w-full bg-brand-50 border px-4 py-3 text-sm focus:outline-none transition-all rounded-xs ${
+                      nameError ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/10" : "border-brand-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                    }`}
+                    placeholder="Vd: Nguyễn Văn A"
+                  />
+                  {nameError && (
+                    <p className="text-xs text-red-600 font-medium flex items-center gap-1.5 mt-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {nameError}
+                    </p>
+                  )}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label htmlFor="phone" className="text-xs font-medium uppercase tracking-wider text-brand-700">Số điện thoại *</label>
-                  <input required id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full bg-brand-50 border border-brand-200 px-4 py-3 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" placeholder="09xx xxx xxx" />
+                  <input
+                    required
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    onBlur={() => {
+                      if (formData.phone.trim() && !isValidVietnamesePhone(formData.phone)) {
+                        setPhoneError("Số điện thoại không hợp lệ (Ví dụ: 0912 345 678)");
+                      }
+                    }}
+                    className={`w-full bg-brand-50 border px-4 py-3 text-sm focus:outline-none font-mono transition-all rounded-xs ${
+                      phoneError ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/10" : "border-brand-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                    }`}
+                    placeholder="09xx xxx xxx"
+                  />
+                  {phoneError && (
+                    <p className="text-xs text-red-600 font-medium flex items-center gap-1.5 mt-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {phoneError}
+                    </p>
+                  )}
                 </div>
               </div>
 

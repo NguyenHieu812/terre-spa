@@ -27,8 +27,14 @@ import {
   Clock,
   ArrowRight,
   Image as ImageIcon,
+  AlertCircle,
 } from "lucide-react";
 import { usePageSEO } from "../hooks/usePageSEO";
+import {
+  isValidVietnamesePhone,
+  isValidCustomerName,
+  formatPhoneNumber,
+} from "../utils/validationUtils";
 import facialCareImg from "../assets/images/spa_facial_care_1781704209004.jpg";
 
 export const ProductsPage: React.FC = () => {
@@ -43,11 +49,13 @@ export const ProductsPage: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeModalImage, setActiveModalImage] = useState<string>("");
 
-  // Order form states
+  // Order form states & validation
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -112,6 +120,8 @@ export const ProductsPage: React.FC = () => {
     setCustomerPhone("");
     setCustomerAddress("");
     setCustomerNotes("");
+    setNameError("");
+    setPhoneError("");
     if (location.pathname.startsWith("/products/")) {
       navigate("/products", { replace: false });
     }
@@ -128,16 +138,39 @@ export const ProductsPage: React.FC = () => {
   const handleOrderSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
-    if (!customerName.trim() || !customerPhone.trim()) {
-      alert("Vui lòng điền họ tên và số điện thoại.");
-      return;
+
+    let hasError = false;
+    const cleanName = customerName.trim();
+    const cleanPhone = customerPhone.trim();
+
+    if (!cleanName) {
+      setNameError("Vui lòng nhập họ và tên.");
+      hasError = true;
+    } else if (!isValidCustomerName(cleanName)) {
+      setNameError("Họ và tên không hợp lệ (tối thiểu 2 ký tự).");
+      hasError = true;
+    } else {
+      setNameError("");
     }
+
+    if (!cleanPhone) {
+      setPhoneError("Vui lòng nhập số điện thoại.");
+      hasError = true;
+    } else if (!isValidVietnamesePhone(cleanPhone)) {
+      setPhoneError("Số điện thoại không hợp lệ (Ví dụ: 0912 345 678).");
+      hasError = true;
+    } else {
+      setPhoneError("");
+    }
+
+    if (hasError) return;
 
     setIsSubmittingOrder(true);
     try {
+      const formattedPhone = formatPhoneNumber(cleanPhone);
       const newOrd = createOrder({
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
+        customerName: cleanName,
+        customerPhone: formattedPhone,
         customerAddress: customerAddress.trim(),
         customerNotes: customerNotes.trim(),
         items: [
@@ -159,6 +192,8 @@ export const ProductsPage: React.FC = () => {
       setCustomerPhone("");
       setCustomerAddress("");
       setCustomerNotes("");
+      setNameError("");
+      setPhoneError("");
     } catch (err) {
       alert("Không thể gửi đơn hàng. Quý khách vui lòng gọi hotline 0569 08 7777 để được hỗ trợ!");
     } finally {
@@ -612,23 +647,58 @@ export const ProductsPage: React.FC = () => {
                         <span className="text-xs font-bold uppercase tracking-wider text-brand-900 block">
                           Đặt mua nhanh / Tư vấn trực tiếp:
                         </span>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="text"
-                            required
-                            placeholder="Họ và tên *"
-                            value={customerName}
-                            onChange={(e) => setCustomerName(e.target.value)}
-                            className="px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600 bg-brand-50/20"
-                          />
-                          <input
-                            type="tel"
-                            required
-                            placeholder="Số điện thoại *"
-                            value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
-                            className="px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600 bg-brand-50/20 font-mono"
-                          />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <input
+                              type="text"
+                              required
+                              placeholder="Họ và tên *"
+                              value={customerName}
+                              onChange={(e) => {
+                                setCustomerName(e.target.value);
+                                if (nameError) setNameError("");
+                              }}
+                              onBlur={() => {
+                                if (customerName.trim() && !isValidCustomerName(customerName)) {
+                                  setNameError("Họ và tên không hợp lệ (tối thiểu 2 ký tự)");
+                                }
+                              }}
+                              className={`w-full px-3 py-2 text-xs border rounded-xl focus:outline-none bg-brand-50/20 transition-colors ${
+                                nameError ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/10" : "border-brand-200 focus:border-brand-600"
+                              }`}
+                            />
+                            {nameError && (
+                              <p className="text-[10.5px] text-red-600 font-medium flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3 shrink-0" /> {nameError}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <input
+                              type="tel"
+                              required
+                              placeholder="Số điện thoại *"
+                              value={customerPhone}
+                              onChange={(e) => {
+                                setCustomerPhone(e.target.value);
+                                if (phoneError) setPhoneError("");
+                              }}
+                              onBlur={() => {
+                                if (customerPhone.trim() && !isValidVietnamesePhone(customerPhone)) {
+                                  setPhoneError("Số điện thoại không hợp lệ (10 số)");
+                                }
+                              }}
+                              className={`w-full px-3 py-2 text-xs border rounded-xl focus:outline-none bg-brand-50/20 font-mono transition-colors ${
+                                phoneError ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/10" : "border-brand-200 focus:border-brand-600"
+                              }`}
+                            />
+                            {phoneError && (
+                              <p className="text-[10.5px] text-red-600 font-medium flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3 shrink-0" /> {phoneError}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <input
                           type="text"
