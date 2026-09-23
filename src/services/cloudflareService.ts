@@ -1,4 +1,4 @@
-import { CloudflareConfig, Post, Product, AppDataPayload, ServiceCategory, CustomerReview, Order } from "../types";
+import { CloudflareConfig, Post, Product, AppDataPayload, ServiceCategory, CustomerReview, Order, Coupon } from "../types";
 
 export const CLOUDFLARE_STORAGE_KEY = "terre_spa_cloudflare_config";
 
@@ -115,6 +115,7 @@ export async function syncToCloudflare(
     serviceCategories?: ServiceCategory[];
     reviews?: CustomerReview[];
     orders?: Order[];
+    coupons?: Coupon[];
     productCategories?: string[];
     deletedPostIds?: string[];
     deletedProductIds?: string[];
@@ -150,6 +151,7 @@ export async function syncToCloudflare(
         serviceCategories: payload.serviceCategories || [],
         reviews: payload.reviews || [],
         orders: payload.orders || [],
+        coupons: payload.coupons || [],
         productCategories: payload.productCategories || [],
         deletedPostIds: payload.deletedPostIds || [],
         deletedProductIds: payload.deletedProductIds || [],
@@ -228,6 +230,7 @@ export async function fetchFromCloudflare(
           serviceCategories: Array.isArray(data.serviceCategories) ? data.serviceCategories : [],
           reviews: Array.isArray(data.reviews) ? data.reviews : [],
           orders: Array.isArray(data.orders) ? data.orders : [],
+          coupons: Array.isArray(data.coupons) ? data.coupons : [],
           productCategories: Array.isArray(data.productCategories) ? data.productCategories : [],
           version: data.version || "1.0.0",
           lastUpdated: data.lastUpdated || new Date().toISOString(),

@@ -227,6 +227,7 @@ export const saveProductCategories = (categories: string[]): void => {
     const clean = Array.from(new Set(categories.map((c) => c.trim()).filter(Boolean)));
     localStorage.setItem(PRODUCT_CATEGORIES_STORAGE_KEY, JSON.stringify(clean));
     recordLocalMutation();
+    triggerFullAutoSync();
   } catch (e) {}
 };
 
@@ -475,14 +476,7 @@ export const saveStoredServices = (serviceCategories: ServiceCategory[]): void =
 
     localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(serviceCategories));
     recordLocalMutation();
-    // Trigger auto-sync to Cloudflare if enabled
-    checkAndAutoSync({
-      posts: getStoredPosts(),
-      products: getStoredProducts(),
-      serviceCategories,
-      reviews: getStoredReviews(),
-      deletedServiceIds: Array.from(getDeletedServiceIds()),
-    });
+    triggerFullAutoSync();
   } catch (e: any) {
     console.error("Failed to save services to LocalStorage", e);
     if (e.name === "QuotaExceededError" || e.code === 22) {
@@ -524,14 +518,7 @@ export const saveStoredPosts = (posts: Post[]): void => {
 
     localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
     recordLocalMutation();
-    // Trigger auto-sync to Cloudflare if enabled
-    checkAndAutoSync({
-      posts,
-      products: getStoredProducts(),
-      serviceCategories: getStoredServices(),
-      reviews: getStoredReviews(),
-      deletedPostIds: Array.from(getDeletedPostIds()),
-    });
+    triggerFullAutoSync();
   } catch (e: any) {
     console.error("Failed to save posts to LocalStorage", e);
     if (e.name === "QuotaExceededError" || e.code === 22) {
@@ -573,14 +560,7 @@ export const saveStoredProducts = (products: Product[]): void => {
 
     localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
     recordLocalMutation();
-    // Trigger auto-sync to Cloudflare if enabled
-    checkAndAutoSync({
-      posts: getStoredPosts(),
-      products,
-      serviceCategories: getStoredServices(),
-      reviews: getStoredReviews(),
-      deletedProductIds: Array.from(getDeletedProductIds()),
-    });
+    triggerFullAutoSync();
   } catch (e: any) {
     console.error("Failed to save products to LocalStorage", e);
     if (e.name === "QuotaExceededError" || e.code === 22) {
@@ -664,13 +644,7 @@ export const saveStoredReviews = (reviews: CustomerReview[]): void => {
   try {
     localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
     recordLocalMutation();
-    // Trigger auto-sync to Cloudflare if enabled
-    checkAndAutoSync({
-      posts: getStoredPosts(),
-      products: getStoredProducts(),
-      serviceCategories: getStoredServices(),
-      reviews,
-    });
+    triggerFullAutoSync();
   } catch (e: any) {
     console.error("Failed to save reviews to LocalStorage", e);
     if (e.name === "QuotaExceededError" || e.code === 22) {
@@ -825,16 +799,7 @@ export const saveStoredCoupons = (coupons: Coupon[]): void => {
   try {
     localStorage.setItem(COUPONS_STORAGE_KEY, JSON.stringify(coupons));
     recordLocalMutation();
-    checkAndAutoSync({
-      posts: getStoredPosts(),
-      products: getStoredProducts(),
-      serviceCategories: getStoredServices(),
-      reviews: getStoredReviews(),
-      orders: getStoredOrders(),
-      coupons,
-      productCategories: getStoredProductCategories(),
-      deletedOrderIds: Array.from(getDeletedOrderIds()),
-    });
+    triggerFullAutoSync();
   } catch (e) {
     console.error("Failed to save coupons to LocalStorage", e);
   }
@@ -952,16 +917,7 @@ export const saveStoredOrders = (orders: Order[]): void => {
 
     localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
     recordLocalMutation();
-    checkAndAutoSync({
-      posts: getStoredPosts(),
-      products: getStoredProducts(),
-      serviceCategories: getStoredServices(),
-      reviews: getStoredReviews(),
-      orders,
-      coupons: getStoredCoupons(),
-      productCategories: getStoredProductCategories(),
-      deletedOrderIds: Array.from(getDeletedOrderIds()),
-    });
+    triggerFullAutoSync();
   } catch (e) {
     console.error("Failed to save orders to LocalStorage", e);
   }
@@ -1029,14 +985,49 @@ export const deleteOrder = (orderId: string): void => {
 };
 
 /**
+ * Trigger full debounced auto-sync to Cloudflare with all data tables & tombstones
+ */
+let autoSyncTimeout: any = null;
+
+export const triggerFullAutoSync = (immediate = false) => {
+  if (autoSyncTimeout) {
+    clearTimeout(autoSyncTimeout);
+    autoSyncTimeout = null;
+  }
+
+  const execute = () => {
+    checkAndAutoSync({
+      posts: getStoredPosts(),
+      products: getStoredProducts(),
+      serviceCategories: getStoredServices(),
+      reviews: getStoredReviews(),
+      orders: getStoredOrders(),
+      coupons: getStoredCoupons(),
+      productCategories: getStoredProductCategories(),
+      deletedPostIds: Array.from(getDeletedPostIds()),
+      deletedProductIds: Array.from(getDeletedProductIds()),
+      deletedServiceIds: Array.from(getDeletedServiceIds()),
+      deletedOrderIds: Array.from(getDeletedOrderIds()),
+    });
+  };
+
+  if (immediate) {
+    execute();
+  } else {
+    autoSyncTimeout = setTimeout(execute, 300);
+  }
+};
+
+/**
  * Auto sync helper - Pushes local changes up to Cloudflare
  */
-async function checkAndAutoSync(payload: {
-  posts: Post[];
-  products: Product[];
+export async function checkAndAutoSync(payload?: {
+  posts?: Post[];
+  products?: Product[];
   serviceCategories?: ServiceCategory[];
   reviews?: CustomerReview[];
   orders?: Order[];
+  coupons?: Coupon[];
   productCategories?: string[];
   deletedPostIds?: string[];
   deletedProductIds?: string[];
@@ -1044,9 +1035,23 @@ async function checkAndAutoSync(payload: {
   deletedOrderIds?: string[];
 }) {
   const config = getDefaultCloudflareConfig();
-  if (config.workerUrl && config.autoSync) {
+  if (config.workerUrl && config.autoSync !== false) {
     try {
-      const res = await syncToCloudflare(config, payload);
+      const fullPayload = {
+        posts: payload?.posts ?? getStoredPosts(),
+        products: payload?.products ?? getStoredProducts(),
+        serviceCategories: payload?.serviceCategories ?? getStoredServices(),
+        reviews: payload?.reviews ?? getStoredReviews(),
+        orders: payload?.orders ?? getStoredOrders(),
+        coupons: payload?.coupons ?? getStoredCoupons(),
+        productCategories: payload?.productCategories ?? getStoredProductCategories(),
+        deletedPostIds: payload?.deletedPostIds ?? Array.from(getDeletedPostIds()),
+        deletedProductIds: payload?.deletedProductIds ?? Array.from(getDeletedProductIds()),
+        deletedServiceIds: payload?.deletedServiceIds ?? Array.from(getDeletedServiceIds()),
+        deletedOrderIds: payload?.deletedOrderIds ?? Array.from(getDeletedOrderIds()),
+      };
+
+      const res = await syncToCloudflare(config, fullPayload);
       config.lastSyncTime = new Date().toISOString();
       config.syncStatus = res.success ? "success" : "error";
       config.syncMessage = res.message;
@@ -1079,7 +1084,15 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
 
     const res = await fetchFromCloudflare(config);
     if (res.success && res.data) {
-      const { posts, products, serviceCategories, reviews, orders, productCategories, lastUpdated } = res.data;
+      const { posts, products, serviceCategories, reviews, orders, coupons, productCategories, lastUpdated } = res.data;
+
+      // If server is completely empty (e.g. fresh DB), auto-seed server with local data!
+      const isServerEmpty = (!posts || posts.length === 0) && (!products || products.length === 0);
+      if (isServerEmpty) {
+        console.debug("Cloudflare database is unseeded. Seeding with local baseline data...");
+        triggerFullAutoSync(true);
+        return true;
+      }
 
       const lastLocalMutation = parseInt(localStorage.getItem(LAST_MUTATION_STORAGE_KEY) || "0", 10);
       const serverTimestamp = lastUpdated ? new Date(lastUpdated).getTime() : 0;
@@ -1104,6 +1117,7 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
         : [];
       const filteredReviews = Array.isArray(reviews) ? reviews : [];
       const filteredOrders = Array.isArray(orders) ? orders.filter((o) => !deletedOrderIds.has(o.id)) : [];
+      const filteredCoupons = Array.isArray(coupons) ? coupons : [];
       const filteredCategories = Array.isArray(productCategories) && productCategories.length > 0
         ? productCategories
         : getStoredProductCategories();
@@ -1115,59 +1129,40 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
 
       if (hadZombiePost || hadZombieProduct || hadZombieOrder) {
         console.debug("Server had deleted items. Pushing local cleanup to Cloudflare...");
-        checkAndAutoSync({
-          posts: filteredPosts,
-          products: filteredProducts,
-          serviceCategories: filteredServices,
-          reviews: filteredReviews,
-          orders: filteredOrders,
-          productCategories: filteredCategories,
-          deletedPostIds: Array.from(deletedPostIds),
-          deletedProductIds: Array.from(deletedProductIds),
-          deletedServiceIds: Array.from(deletedServiceIds),
-          deletedOrderIds: Array.from(deletedOrderIds),
-        });
+        triggerFullAutoSync(true);
       }
 
-      // CRITICAL GUARD: If local was modified at or after server's data timestamp,
-      // DO NOT overwrite local deletions or edits! Instead, re-push local data to cloud.
+      // If local was modified at or after server's data timestamp, push local to cloud instead of overwriting
       if (lastLocalMutation > 0 && serverTimestamp > 0 && serverTimestamp <= lastLocalMutation) {
         console.debug("Local changes are newer than Cloudflare. Pushing local to cloud instead of overwriting...");
-        checkAndAutoSync({
-          posts: getStoredPosts(),
-          products: getStoredProducts(),
-          serviceCategories: getStoredServices(),
-          reviews: getStoredReviews(),
-          orders: getStoredOrders(),
-          productCategories: getStoredProductCategories(),
-          deletedPostIds: Array.from(deletedPostIds),
-          deletedProductIds: Array.from(deletedProductIds),
-          deletedServiceIds: Array.from(deletedServiceIds),
-          deletedOrderIds: Array.from(deletedOrderIds),
-        });
+        triggerFullAutoSync(true);
         return true;
       }
 
       let hasUpdates = false;
 
-      if (Array.isArray(posts)) {
+      if (Array.isArray(posts) && posts.length > 0) {
         localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(filteredPosts));
         hasUpdates = true;
       }
-      if (Array.isArray(products)) {
+      if (Array.isArray(products) && products.length > 0) {
         localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(filteredProducts));
         hasUpdates = true;
       }
-      if (Array.isArray(serviceCategories)) {
+      if (Array.isArray(serviceCategories) && serviceCategories.length > 0) {
         localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(filteredServices));
         hasUpdates = true;
       }
-      if (Array.isArray(reviews)) {
+      if (Array.isArray(reviews) && reviews.length > 0) {
         localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(filteredReviews));
         hasUpdates = true;
       }
       if (Array.isArray(orders)) {
         localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(filteredOrders));
+        hasUpdates = true;
+      }
+      if (Array.isArray(coupons) && coupons.length > 0) {
+        localStorage.setItem(COUPONS_STORAGE_KEY, JSON.stringify(filteredCoupons));
         hasUpdates = true;
       }
       if (Array.isArray(productCategories) && productCategories.length > 0) {
@@ -1184,6 +1179,7 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
               serviceCategories: filteredServices,
               reviews: filteredReviews,
               orders: filteredOrders,
+              coupons: filteredCoupons,
               productCategories: filteredCategories,
               timestamp: lastUpdated || new Date().toISOString(),
             },
