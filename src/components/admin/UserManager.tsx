@@ -41,10 +41,16 @@ const MODULE_DEFINITIONS: {
   desc: string;
 }[] = [
   {
-    key: "posts",
-    label: "Bài Viết & Blog",
-    icon: "📝",
-    desc: "Tin tức, bài viết kiến thức chăm sóc sức khỏe & spa",
+    key: "orders",
+    label: "Đơn Hàng & Xử Lý Đơn",
+    icon: "📦",
+    desc: "Xem đơn, cập nhật trạng thái đơn, xóa đơn và mở lại đơn đã chốt",
+  },
+  {
+    key: "coupons",
+    label: "Mã Ưu Đãi & Khuyến Mãi",
+    icon: "🏷️",
+    desc: "Tạo và cấu hình mã giảm giá, voucher chiết khấu",
   },
   {
     key: "products",
@@ -57,6 +63,12 @@ const MODULE_DEFINITIONS: {
     label: "Gói Dịch Vụ",
     icon: "💆‍♀️",
     desc: "Danh mục và các gói trị liệu gội đầu, massage, dưỡng sinh",
+  },
+  {
+    key: "posts",
+    label: "Bài Viết & Blog",
+    icon: "📝",
+    desc: "Tin tức, bài viết kiến thức chăm sóc sức khỏe & spa",
   },
   {
     key: "reviews",
@@ -119,22 +131,25 @@ export const UserManager: React.FC<UserManagerProps> = ({
   // Toggle single permission checkbox
   const handleTogglePermission = (
     moduleKey: keyof Omit<AdminPermissions, "cloudflare">,
-    action: keyof CrudPermission
+    action: string
   ) => {
     if (!tempPermissions) return;
-    const currentModule = tempPermissions[moduleKey];
+    const currentModule = tempPermissions[moduleKey] as any;
     const updatedModule = {
       ...currentModule,
       [action]: !currentModule[action],
     };
 
-    // If unchecking 'view', disable create/edit/delete automatically
+    // If unchecking 'view', disable create/edit/delete/revertFinishedStatus automatically
     if (action === "view" && currentModule.view) {
       updatedModule.create = false;
       updatedModule.edit = false;
       updatedModule.delete = false;
+      if ("revertFinishedStatus" in updatedModule) {
+        updatedModule.revertFinishedStatus = false;
+      }
     }
-    // If enabling create/edit/delete, ensure 'view' is true
+    // If enabling any sub-action, ensure 'view' is true
     if (action !== "view" && !currentModule.view) {
       updatedModule.view = true;
     }
@@ -159,10 +174,12 @@ export const UserManager: React.FC<UserManagerProps> = ({
   };
 
   // Apply Quick Permission Preset
-  const handleApplyPreset = (presetType: "full" | "readonly" | "products" | "services") => {
+  const handleApplyPreset = (presetType: "full" | "readonly" | "products" | "services" | "sales") => {
     if (!tempPermissions) return;
     if (presetType === "full") {
       setTempPermissions({
+        orders: { view: true, create: true, edit: true, delete: true, revertFinishedStatus: true },
+        coupons: { view: true, create: true, edit: true, delete: true },
         posts: { view: true, create: true, edit: true, delete: true },
         products: { view: true, create: true, edit: true, delete: true },
         services: { view: true, create: true, edit: true, delete: true },
@@ -171,6 +188,8 @@ export const UserManager: React.FC<UserManagerProps> = ({
       });
     } else if (presetType === "readonly") {
       setTempPermissions({
+        orders: { view: true, create: false, edit: false, delete: false, revertFinishedStatus: false },
+        coupons: { view: true, create: false, edit: false, delete: false },
         posts: { view: true, create: false, edit: false, delete: false },
         products: { view: true, create: false, edit: false, delete: false },
         services: { view: true, create: false, edit: false, delete: false },
@@ -179,6 +198,8 @@ export const UserManager: React.FC<UserManagerProps> = ({
       });
     } else if (presetType === "products") {
       setTempPermissions({
+        orders: { view: true, create: true, edit: true, delete: false, revertFinishedStatus: false },
+        coupons: { view: true, create: true, edit: true, delete: false },
         posts: { view: true, create: true, edit: true, delete: false },
         products: { view: true, create: true, edit: true, delete: true },
         services: { view: false, create: false, edit: false, delete: false },
@@ -187,10 +208,22 @@ export const UserManager: React.FC<UserManagerProps> = ({
       });
     } else if (presetType === "services") {
       setTempPermissions({
+        orders: { view: false, create: false, edit: false, delete: false, revertFinishedStatus: false },
+        coupons: { view: false, create: false, edit: false, delete: false },
         posts: { view: false, create: false, edit: false, delete: false },
         products: { view: false, create: false, edit: false, delete: false },
         services: { view: true, create: true, edit: true, delete: true },
         reviews: { view: true, create: true, edit: true, delete: true },
+        cloudflare: { view: false, sync: false },
+      });
+    } else if (presetType === "sales") {
+      setTempPermissions({
+        orders: { view: true, create: true, edit: true, delete: false, revertFinishedStatus: false },
+        coupons: { view: true, create: true, edit: true, delete: false },
+        posts: { view: false, create: false, edit: false, delete: false },
+        products: { view: true, create: false, edit: false, delete: false },
+        services: { view: false, create: false, edit: false, delete: false },
+        reviews: { view: false, create: false, edit: false, delete: false },
         cloudflare: { view: false, sync: false },
       });
     }
@@ -557,6 +590,13 @@ export const UserManager: React.FC<UserManagerProps> = ({
                   </button>
                   <button
                     type="button"
+                    onClick={() => handleApplyPreset("sales")}
+                    className="px-3 py-1.5 bg-brand-100 hover:bg-brand-200 text-brand-900 rounded-lg text-xs font-semibold"
+                  >
+                    🛒 Bán Hàng &amp; Xử Lý Đơn (Không xóa / Không mở lại đơn)
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleApplyPreset("products")}
                     className="px-3 py-1.5 bg-brand-100 hover:bg-brand-200 text-brand-900 rounded-lg text-xs font-semibold"
                   >
@@ -587,7 +627,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
 
                 <div className="space-y-3">
                   {MODULE_DEFINITIONS.map((mod) => {
-                    const perm = tempPermissions[mod.key];
+                    const perm = (tempPermissions as any)[mod.key];
 
                     return (
                       <div
@@ -622,7 +662,63 @@ export const UserManager: React.FC<UserManagerProps> = ({
                         </div>
 
                         {/* Sub actions */}
-                        {perm.view && (
+                        {perm.view && mod.key === "orders" && (
+                          <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <label className="flex items-center gap-2 p-2.5 bg-brand-50/80 rounded-xl cursor-pointer hover:bg-brand-100/80 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={perm.create}
+                                onChange={() => handleTogglePermission("orders", "create")}
+                                className="rounded text-brand-800 focus:ring-brand-500 w-4 h-4"
+                              />
+                              <div>
+                                <div className="text-xs font-semibold text-brand-900">➕ Tạo / Xử lý đơn</div>
+                                <div className="text-[10px] text-brand-500">Tạo đơn trực tiếp tại quầy</div>
+                              </div>
+                            </label>
+
+                            <label className="flex items-center gap-2 p-2.5 bg-brand-50/80 rounded-xl cursor-pointer hover:bg-brand-100/80 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={perm.edit}
+                                onChange={() => handleTogglePermission("orders", "edit")}
+                                className="rounded text-brand-800 focus:ring-brand-500 w-4 h-4"
+                              />
+                              <div>
+                                <div className="text-xs font-semibold text-brand-900">✏️ Chuyển trạng thái thông thường</div>
+                                <div className="text-[10px] text-brand-500">Đang xử lý ➔ Đã chốt ➔ Đang giao ➔ Hoàn thành/Hủy</div>
+                              </div>
+                            </label>
+
+                            <label className="flex items-center gap-2 p-2.5 bg-amber-50/80 border border-amber-200/60 rounded-xl cursor-pointer hover:bg-amber-100/80 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={perm.revertFinishedStatus}
+                                onChange={() => handleTogglePermission("orders", "revertFinishedStatus")}
+                                className="rounded text-amber-800 focus:ring-amber-500 w-4 h-4"
+                              />
+                              <div>
+                                <div className="text-xs font-semibold text-amber-950">🔓 Mở lại đơn đã Hoàn thành/Hủy</div>
+                                <div className="text-[10px] text-amber-700">Chuyển từ Hoàn thành/Hủy quay lại xác nhận</div>
+                              </div>
+                            </label>
+
+                            <label className="flex items-center gap-2 p-2.5 bg-red-50/80 border border-red-200/60 rounded-xl cursor-pointer hover:bg-red-100/80 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={perm.delete}
+                                onChange={() => handleTogglePermission("orders", "delete")}
+                                className="rounded text-red-700 focus:ring-red-500 w-4 h-4"
+                              />
+                              <div>
+                                <div className="text-xs font-semibold text-red-900">🗑️ Quyền xóa vĩnh viễn đơn hàng</div>
+                                <div className="text-[10px] text-red-600">Thao tác không thể khôi phục</div>
+                              </div>
+                            </label>
+                          </div>
+                        )}
+
+                        {perm.view && mod.key !== "orders" && (
                           <div className="pt-3 grid grid-cols-3 gap-3">
                             <label className="flex items-center gap-2 p-2 bg-brand-50/80 rounded-xl cursor-pointer hover:bg-brand-100/80 transition-colors">
                               <input

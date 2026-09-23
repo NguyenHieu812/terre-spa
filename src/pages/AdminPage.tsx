@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Post, Product, ServiceCategory, CloudflareConfig, CustomerReview, AdminUser, Order, OrderStatus } from "../types";
+import { Post, Product, ServiceCategory, CloudflareConfig, CustomerReview, AdminUser, Order, OrderStatus, Coupon } from "../types";
 import {
   getStoredPosts,
   saveStoredPosts,
@@ -12,6 +12,8 @@ import {
   saveStoredReviews,
   getStoredOrders,
   saveStoredOrders,
+  getStoredCoupons,
+  saveStoredCoupons,
   createOrder,
   updateOrderStatus,
   deleteOrder,
@@ -36,6 +38,7 @@ import { ReviewManager } from "../components/admin/ReviewManager";
 import { UserManager } from "../components/admin/UserManager";
 import { CloudflareSettings } from "../components/admin/CloudflareSettings";
 import { OrderManager } from "../components/admin/OrderManager";
+import { CouponManager } from "../components/admin/CouponManager";
 import LogoTerre from "../assets/images/logo-terre-removebg.png";
 import {
   LayoutDashboard,
@@ -65,9 +68,10 @@ import {
   CheckCircle2,
   RefreshCw,
   Phone,
+  Tag,
 } from "lucide-react";
 
-type AdminTab = "dashboard" | "orders" | "posts" | "products" | "services" | "reviews" | "users" | "cloudflare";
+type AdminTab = "dashboard" | "orders" | "coupons" | "posts" | "products" | "services" | "reviews" | "users" | "cloudflare";
 
 const AdminPage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => getCurrentAdminUser());
@@ -80,6 +84,7 @@ const AdminPage: React.FC = () => {
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [reviews, setReviews] = useState<CustomerReview[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [cloudflareConfig, setCloudflareConfig] = useState<CloudflareConfig>(
     getDefaultCloudflareConfig()
   );
@@ -106,6 +111,7 @@ const AdminPage: React.FC = () => {
       setServices(getStoredServices());
       setReviews(getStoredReviews());
       setOrders(getStoredOrders());
+      setCoupons(getStoredCoupons());
       setCloudflareConfig(getDefaultCloudflareConfig());
     };
     loadAll();
@@ -132,6 +138,11 @@ const AdminPage: React.FC = () => {
   const handleSaveReviews = (updated: CustomerReview[]) => {
     setReviews(updated);
     saveStoredReviews(updated);
+  };
+
+  const handleSaveCoupons = (updatedCoupons: Coupon[]) => {
+    setCoupons(updatedCoupons);
+    saveStoredCoupons(updatedCoupons);
   };
 
   // Order Handlers
@@ -493,6 +504,21 @@ const AdminPage: React.FC = () => {
                   {pendingOrders.length}
                 </span>
               )}
+            </button>
+          )}
+
+          {/* Coupons Tab */}
+          {(isSuper || perms.coupons?.view) && (
+            <button
+              onClick={() => setActiveTab("coupons")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap relative ${
+                activeTab === "coupons"
+                  ? "border-amber-700 text-amber-950 bg-amber-50/70 font-bold"
+                  : "border-transparent text-brand-600 hover:text-brand-900 hover:bg-brand-50"
+              }`}
+            >
+              <Tag className="w-4 h-4 text-amber-600" />
+              <span>Mã Ưu Đãi ({coupons.length})</span>
             </button>
           )}
 
@@ -871,9 +897,23 @@ const AdminPage: React.FC = () => {
             onSaveOrders={handleSaveOrders}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onDeleteOrder={handleDeleteOrder}
+            currentUser={currentUser}
             canCreate={isSuper || perms.orders?.create}
             canEdit={isSuper || perms.orders?.edit}
             canDelete={isSuper || perms.orders?.delete}
+          />
+        )}
+
+        {/* Tab: Coupons */}
+        {activeTab === "coupons" && (isSuper || perms.coupons?.view) && (
+          <CouponManager
+            coupons={coupons}
+            orders={orders}
+            onSaveCoupons={handleSaveCoupons}
+            currentUser={currentUser}
+            canCreate={isSuper || perms.coupons?.create}
+            canEdit={isSuper || perms.coupons?.edit}
+            canDelete={isSuper || perms.coupons?.delete}
           />
         )}
 

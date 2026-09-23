@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Order, OrderStatus, OrderItem, Product } from "../../types";
+import { Order, OrderStatus, OrderItem, Product, AdminUser } from "../../types";
 import {
   Search,
   Filter,
@@ -24,9 +24,12 @@ import {
   FileText,
   Printer,
   ChevronDown,
+  Tag,
+  Lock,
 } from "lucide-react";
 import facialCareImg from "../../assets/images/spa_facial_care_1781704209004.jpg";
 import { isValidVietnamesePhone, isValidCustomerName, formatPhoneNumber } from "../../utils/validationUtils";
+import { canUserDeleteOrder, canUserRevertOrderStatus } from "../../services/authStore";
 
 interface OrderManagerProps {
   orders: Order[];
@@ -34,6 +37,7 @@ interface OrderManagerProps {
   onSaveOrders: (orders: Order[]) => void;
   onUpdateOrderStatus: (orderId: string, status: OrderStatus, adminNotes?: string) => void;
   onDeleteOrder: (orderId: string) => void;
+  currentUser?: AdminUser | null;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -86,6 +90,7 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
   onSaveOrders,
   onUpdateOrderStatus,
   onDeleteOrder,
+  currentUser,
   canCreate = true,
   canEdit = true,
   canDelete = true,
@@ -96,6 +101,9 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isCreatingManualOrder, setIsCreatingManualOrder] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+
+  const canDeleteThisOrder = canUserDeleteOrder(currentUser ?? null) && canDelete;
+  const canRevertThisOrder = canUserRevertOrderStatus(currentUser ?? null);
 
   // Manual Order Form State
   const [manualCustomerName, setManualCustomerName] = useState("");
@@ -164,6 +172,19 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
   };
 
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+
+    const isCurrentlyFinished = targetOrder.status === "completed" || targetOrder.status === "cancelled";
+    const isTargetingUnfinished = newStatus === "pending" || newStatus === "confirmed" || newStatus === "shipping";
+
+    if (isCurrentlyFinished && isTargetingUnfinished && !canRevertThisOrder) {
+      alert(
+        `Không thể chuyển đơn từ "${STATUS_CONFIG[targetOrder.status].label}" quay về "${STATUS_CONFIG[newStatus].label}". Chỉ Super Admin mới có quyền mở lại đơn đã chốt/hủy.`
+      );
+      return;
+    }
+
     onUpdateOrderStatus(orderId, newStatus);
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder({ ...selectedOrder, status: newStatus });
@@ -451,6 +472,13 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
                         <div className="font-bold text-brand-950 text-sm font-serif">
                           {formatPrice(ord.totalAmount)} đ
                         </div>
+                        {ord.couponCode && (
+                          <div className="flex items-center gap-1 text-[10.5px] text-green-700 font-medium mt-0.5">
+                            <Tag className="w-3 h-3 text-green-600" />
+                            <span className="font-mono uppercase font-bold">{ord.couponCode}</span>
+                            <span>(-{formatPrice(ord.discountAmount || 0)}đ)</span>
+                          </div>
+                        )}
                       </td>
 
                       {/* Status Dropdown on row */}
@@ -461,9 +489,24 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
                             onChange={(e) => handleStatusChange(ord.id, e.target.value as OrderStatus)}
                             className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl border focus:outline-none cursor-pointer ${st.bg} ${st.text} ${st.border}`}
                           >
-                            <option value="pending">⏳ Chờ xác nhận</option>
-                            <option value="confirmed">✓ Đã xác nhận</option>
-                            <option value="shipping">🚚 Đang giao hàng</option>
+                            <option
+                              value="pending"
+                              disabled={(ord.status === "completed" || ord.status === "cancelled") && !canRevertThisOrder}
+                            >
+                              ⏳ Chờ xác nhận
+                            </option>
+                            <option
+                              value="confirmed"
+                              disabled={(ord.status === "completed" || ord.status === "cancelled") && !canRevertThisOrder}
+                            >
+                              ✓ Đã xác nhận
+                            </option>
+                            <option
+                              value="shipping"
+                              disabled={(ord.status === "completed" || ord.status === "cancelled") && !canRevertThisOrder}
+                            >
+                              🚚 Đang giao hàng
+                            </option>
                             <option value="completed">🎉 Hoàn thành</option>
                             <option value="cancelled">✕ Đã hủy</option>
                           </select>
@@ -493,15 +536,22 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
                           </button>
 
                           {/* Delete */}
-                          {canDelete && (
+                          {canDeleteThisOrder ? (
                             <button
                               type="button"
                               onClick={() => setOrderToDelete(ord)}
                               title="Xóa đơn hàng"
-                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
+                          ) : (
+                            <span
+                              title="Bạn không có quyền xóa đơn hàng (Chỉ Super Admin)"
+                              className="p-1.5 text-gray-300 cursor-not-allowed inline-block"
+                            >
+                              <Lock className="w-3.5 h-3.5" />
+                            </span>
                           )}
                         </div>
                       </td>
@@ -622,33 +672,64 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
                       </div>
                     </div>
                   ))}
-                  <div className="p-3.5 bg-brand-50/60 flex items-center justify-between font-bold text-sm text-brand-950">
-                    <span>Tổng tiền thanh toán:</span>
-                    <span className="text-base font-serif text-brand-900">
-                      {formatPrice(selectedOrder.totalAmount)} VNĐ
-                    </span>
+                  {/* Price Breakdown in Modal */}
+                  <div className="p-3.5 bg-brand-50/70 border-t border-brand-200 text-xs space-y-1.5">
+                    {selectedOrder.subtotalAmount && selectedOrder.discountAmount ? (
+                      <>
+                        <div className="flex justify-between text-brand-700">
+                          <span>Tạm tính tiền hàng:</span>
+                          <span className="font-semibold text-brand-900 font-mono">{formatPrice(selectedOrder.subtotalAmount)} đ</span>
+                        </div>
+                        <div className="flex justify-between text-green-700 font-medium">
+                          <span className="flex items-center gap-1">
+                            <Tag className="w-3 h-3 text-green-600" /> Mã ưu đãi [{selectedOrder.couponCode}]:
+                          </span>
+                          <span className="font-mono">-{formatPrice(selectedOrder.discountAmount)} đ</span>
+                        </div>
+                      </>
+                    ) : null}
+                    <div className="flex justify-between font-bold text-sm text-brand-950 border-t border-brand-200/80 pt-1.5">
+                      <span>Tổng tiền thanh toán:</span>
+                      <span className="text-base font-serif text-brand-900">
+                        {formatPrice(selectedOrder.totalAmount)} VNĐ
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Status Selector */}
               <div className="space-y-2">
-                <span className="font-bold text-brand-900 uppercase tracking-wider text-[11px] block">
-                  Trạng thái đơn hàng:
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-brand-900 uppercase tracking-wider text-[11px] block">
+                    Trạng thái đơn hàng:
+                  </span>
+                  {(selectedOrder.status === "completed" || selectedOrder.status === "cancelled") && !canRevertThisOrder && (
+                    <span className="text-[10.5px] text-amber-700 font-medium flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Đơn đã chốt (Chỉ Super Admin được mở lại)
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {(Object.keys(STATUS_CONFIG) as OrderStatus[]).map((st) => {
                     const cfg = STATUS_CONFIG[st];
                     const isSelected = selectedOrder.status === st;
+                    const isFinished = selectedOrder.status === "completed" || selectedOrder.status === "cancelled";
+                    const isTargetingUnfinished = st === "pending" || st === "confirmed" || st === "shipping";
+                    const isDisabled = isFinished && isTargetingUnfinished && !canRevertThisOrder;
+
                     return (
                       <button
                         key={st}
                         type="button"
+                        disabled={isDisabled}
                         onClick={() => handleStatusChange(selectedOrder.id, st)}
                         className={`p-2.5 rounded-xl border text-center transition-all text-xs font-semibold ${
                           isSelected
                             ? "bg-brand-900 text-white border-brand-900 shadow-md font-bold"
-                            : `${cfg.bg} ${cfg.text} ${cfg.border} hover:opacity-80`
+                            : isDisabled
+                            ? "opacity-40 cursor-not-allowed bg-gray-100 text-gray-400 border-gray-200"
+                            : `${cfg.bg} ${cfg.text} ${cfg.border} hover:opacity-80 cursor-pointer`
                         }`}
                       >
                         {cfg.label}

@@ -8,7 +8,8 @@ export const FULL_PERMISSIONS: AdminPermissions = {
   products: { view: true, create: true, edit: true, delete: true },
   services: { view: true, create: true, edit: true, delete: true },
   reviews: { view: true, create: true, edit: true, delete: true },
-  orders: { view: true, create: true, edit: true, delete: true },
+  orders: { view: true, create: true, edit: true, delete: true, revertFinishedStatus: true },
+  coupons: { view: true, create: true, edit: true, delete: true },
   cloudflare: { view: true, sync: true },
 };
 
@@ -36,7 +37,8 @@ export const INITIAL_ADMIN_USERS: AdminUser[] = [
       products: { view: true, create: true, edit: true, delete: false },
       services: { view: false, create: false, edit: false, delete: false },
       reviews: { view: true, create: false, edit: false, delete: false },
-      orders: { view: true, create: true, edit: true, delete: false },
+      orders: { view: true, create: true, edit: true, delete: false, revertFinishedStatus: false },
+      coupons: { view: true, create: true, edit: true, delete: false },
       cloudflare: { view: false, sync: false },
     },
     createdAt: "2026-09-01T00:00:00.000Z",
@@ -54,13 +56,35 @@ export const INITIAL_ADMIN_USERS: AdminUser[] = [
       products: { view: false, create: false, edit: false, delete: false },
       services: { view: true, create: true, edit: true, delete: false },
       reviews: { view: true, create: true, edit: true, delete: false },
-      orders: { view: true, create: false, edit: false, delete: false },
+      orders: { view: true, create: false, edit: false, delete: false, revertFinishedStatus: false },
+      coupons: { view: true, create: false, edit: false, delete: false },
       cloudflare: { view: false, sync: false },
     },
     createdAt: "2026-09-01T00:00:00.000Z",
     isActive: true,
   },
 ];
+
+/**
+ * Permission checks helpers
+ */
+export function canUserDeleteOrder(user: AdminUser | null): boolean {
+  if (!user) return false;
+  if (user.role === "super_admin" || user.username === "admin1") return true;
+  return !!user.permissions?.orders?.delete;
+}
+
+export function canUserRevertOrderStatus(user: AdminUser | null): boolean {
+  if (!user) return false;
+  if (user.role === "super_admin" || user.username === "admin1") return true;
+  return !!user.permissions?.orders?.revertFinishedStatus;
+}
+
+export function canUserManageCoupons(user: AdminUser | null, action: "view" | "create" | "edit" | "delete"): boolean {
+  if (!user) return false;
+  if (user.role === "super_admin" || user.username === "admin1") return true;
+  return !!user.permissions?.coupons?.[action];
+}
 
 /**
  * Get all stored admin users from LocalStorage

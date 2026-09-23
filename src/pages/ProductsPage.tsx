@@ -28,6 +28,8 @@ import {
   ArrowRight,
   Image as ImageIcon,
   AlertCircle,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { usePageSEO } from "../hooks/usePageSEO";
 import {
@@ -35,6 +37,8 @@ import {
   isValidCustomerName,
   formatPhoneNumber,
 } from "../utils/validationUtils";
+import { addToCart, getCartCount, TERRE_CART_UPDATED_EVENT } from "../utils/cartStore";
+import { CartDrawer } from "../components/CartDrawer";
 import facialCareImg from "../assets/images/spa_facial_care_1781704209004.jpg";
 
 export const ProductsPage: React.FC = () => {
@@ -48,6 +52,12 @@ export const ProductsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeModalImage, setActiveModalImage] = useState<string>("");
+  const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
+
+  // Cart Drawer & Toast
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartCount, setCartCount] = useState<number>(() => getCartCount());
+  const [cartToast, setCartToast] = useState("");
 
   // Order form states & validation
   const [customerName, setCustomerName] = useState("");
@@ -91,6 +101,33 @@ export const ProductsPage: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleCartUpdate = (e: any) => {
+      setCartCount(e.detail?.count !== undefined ? e.detail.count : getCartCount());
+    };
+    window.addEventListener(TERRE_CART_UPDATED_EVENT, handleCartUpdate);
+    return () => {
+      window.removeEventListener(TERRE_CART_UPDATED_EVENT, handleCartUpdate);
+    };
+  }, []);
+
+  const showCartToast = (msg: string) => {
+    setCartToast(msg);
+    setTimeout(() => setCartToast(""), 3500);
+  };
+
+  const handleAddToCart = (product: Product, qty: number = 1, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    addToCart(product, qty);
+    showCartToast(`Đã thêm ${qty} "${product.name}" vào giỏ hàng!`);
+  };
+
+  const handleBuyNow = (product: Product, qty: number = 1) => {
+    addToCart(product, qty);
+    handleCloseModal();
+    setIsCartOpen(true);
+  };
+
   // Sync modal with URL slug param on direct page load or URL change
   useEffect(() => {
     if (slug) {
@@ -98,6 +135,7 @@ export const ProductsPage: React.FC = () => {
       if (found) {
         setSelectedProduct(found);
         setActiveModalImage(found.thumbnail || found.images?.[0] || "");
+        setSelectedQuantity(1);
       }
     } else {
       if (location.pathname === "/products") {
@@ -109,12 +147,14 @@ export const ProductsPage: React.FC = () => {
   const handleOpenProduct = (product: Product) => {
     setSelectedProduct(product);
     setActiveModalImage(product.thumbnail || product.images?.[0] || "");
+    setSelectedQuantity(1);
     setCreatedOrder(null);
     navigate(`/products/${product.slug || product.id}`, { replace: false });
   };
 
   const handleCloseModal = () => {
     setSelectedProduct(null);
+    setSelectedQuantity(1);
     setCreatedOrder(null);
     setCustomerName("");
     setCustomerPhone("");
@@ -168,6 +208,8 @@ export const ProductsPage: React.FC = () => {
     setIsSubmittingOrder(true);
     try {
       const formattedPhone = formatPhoneNumber(cleanPhone);
+      const qty = Math.max(1, selectedQuantity);
+      const subtotal = selectedProduct.price * qty;
       const newOrd = createOrder({
         customerName: cleanName,
         customerPhone: formattedPhone,
@@ -179,11 +221,12 @@ export const ProductsPage: React.FC = () => {
             productName: selectedProduct.name,
             productThumbnail: selectedProduct.thumbnail,
             price: selectedProduct.price,
-            quantity: 1,
+            quantity: qty,
             volumeOrWeight: selectedProduct.volumeOrWeight,
           },
         ],
-        totalAmount: selectedProduct.price,
+        subtotalAmount: subtotal,
+        totalAmount: subtotal,
         source: "website_product_modal",
       });
 
@@ -383,7 +426,7 @@ export const ProductsPage: React.FC = () => {
                         </p>
                       </div>
 
-                      <div className="pt-3 border-t border-brand-100 flex items-center justify-between">
+                      <div className="pt-3 border-t border-brand-100 flex items-center justify-between gap-2">
                         <div>
                           <div className="text-base font-bold text-brand-900 font-serif">
                             {formatPrice(product.price)} <span className="text-xs font-normal">VNĐ</span>
@@ -395,13 +438,23 @@ export const ProductsPage: React.FC = () => {
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleOpenProduct(product)}
-                          className="px-4 py-2 bg-brand-800 hover:bg-brand-950 text-white text-xs font-semibold uppercase tracking-wider rounded-xl transition-all shadow-xs flex items-center gap-1.5"
-                        >
-                          <ShoppingBag className="w-3.5 h-3.5" /> Chi tiết
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => handleAddToCart(product, 1, e)}
+                            className="p-2 bg-brand-100 hover:bg-brand-200 text-brand-900 rounded-xl text-xs font-semibold transition-all flex items-center justify-center shadow-2xs"
+                            title="Thêm vào giỏ hàng"
+                          >
+                            <ShoppingBag className="w-4 h-4 text-brand-700" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenProduct(product)}
+                            className="px-3.5 py-2 bg-brand-800 hover:bg-brand-950 text-white text-xs font-semibold uppercase tracking-wider rounded-xl transition-all shadow-xs"
+                          >
+                            Chi tiết
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -616,7 +669,52 @@ export const ProductsPage: React.FC = () => {
                   </div>
 
                   {/* Order Box / Form */}
-                  <div className="pt-4 border-t border-brand-100 space-y-3">
+                  <div className="pt-4 border-t border-brand-100 space-y-3.5">
+                    {/* Quantity Selector & Main Cart CTAs */}
+                    <div className="p-3.5 bg-brand-50/70 rounded-2xl border border-brand-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-brand-800">
+                          Chọn số lượng:
+                        </span>
+                        <div className="flex items-center border border-brand-200 rounded-xl bg-white overflow-hidden shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedQuantity((q) => Math.max(1, q - 1))}
+                            className="w-8 h-8 flex items-center justify-center text-brand-700 hover:bg-brand-100 transition-colors"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="w-9 text-center text-xs font-bold text-brand-900 font-mono">
+                            {selectedQuantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedQuantity((q) => q + 1)}
+                            className="w-8 h-8 flex items-center justify-center text-brand-700 hover:bg-brand-100 transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleAddToCart(selectedProduct, selectedQuantity)}
+                          className="py-2.5 px-3 bg-brand-100 hover:bg-brand-200 text-brand-900 border border-brand-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5 text-brand-700" /> Thêm Vào Giỏ
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleBuyNow(selectedProduct, selectedQuantity)}
+                          className="py-2.5 px-3 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-brand-300" /> Mua Ngay
+                        </button>
+                      </div>
+                    </div>
+
                     {createdOrder ? (
                       <div className="p-4 bg-green-50 border border-green-200 rounded-2xl text-green-900 space-y-2 animate-in zoom-in-95">
                         <div className="flex items-center gap-2">
@@ -645,7 +743,7 @@ export const ProductsPage: React.FC = () => {
                     ) : (
                       <form onSubmit={handleOrderSubmit} className="space-y-2.5">
                         <span className="text-xs font-bold uppercase tracking-wider text-brand-900 block">
-                          Đặt mua nhanh / Tư vấn trực tiếp:
+                          Hoặc gửi yêu cầu tư vấn nhanh ({formatPrice(selectedProduct.price * Math.max(1, selectedQuantity))}đ):
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div className="space-y-1">
@@ -720,7 +818,7 @@ export const ProductsPage: React.FC = () => {
                             disabled={isSubmittingOrder}
                             className="flex-1 py-3 bg-brand-900 hover:bg-brand-950 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
                           >
-                            <ShoppingBag className="w-4 h-4" /> Đặt mua ngay
+                            <ShoppingBag className="w-4 h-4" /> Đặt mua nhanh
                           </button>
                           <a
                             href="tel:0569087777"
@@ -738,6 +836,42 @@ export const ProductsPage: React.FC = () => {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Toast Notification */}
+      {cartToast && (
+        <div className="fixed bottom-6 left-6 z-50 bg-brand-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-medium animate-in slide-in-from-bottom-5">
+          <CheckCircle2 className="w-4 h-4 text-brand-300" />
+          <span>{cartToast}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setCartToast("");
+              setIsCartOpen(true);
+            }}
+            className="ml-2 underline font-bold text-amber-300 hover:text-white cursor-pointer"
+          >
+            Xem giỏ hàng
+          </button>
+        </div>
+      )}
+
+      {/* Floating Cart Button on Page */}
+      <button
+        type="button"
+        onClick={() => setIsCartOpen(true)}
+        className="fixed bottom-6 right-6 z-40 p-4 bg-brand-800 hover:bg-brand-950 text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center group cursor-pointer"
+        title="Mở giỏ hàng"
+      >
+        <ShoppingBag className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+        {cartCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-600 text-white rounded-full text-xs font-bold flex items-center justify-center border-2 border-white shadow-md animate-bounce">
+            {cartCount > 99 ? "99+" : cartCount}
+          </span>
+        )}
+      </button>
+
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
       <Footer />
     </div>

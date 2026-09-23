@@ -1,4 +1,4 @@
-import { Post, Product, ServiceCategory, SpaService, CloudflareConfig, CustomerReview, Order, OrderStatus } from "../types";
+import { Post, Product, ServiceCategory, SpaService, CloudflareConfig, CustomerReview, Order, OrderStatus, Coupon } from "../types";
 import {
   getDefaultCloudflareConfig,
   saveCloudflareConfig,
@@ -18,6 +18,7 @@ export const PRODUCTS_STORAGE_KEY = "terre_spa_products_data";
 export const SERVICES_STORAGE_KEY = "terre_spa_services_data";
 export const REVIEWS_STORAGE_KEY = "terre_spa_reviews_data";
 export const ORDERS_STORAGE_KEY = "terre_spa_orders_data";
+export const COUPONS_STORAGE_KEY = "terre_spa_coupons_data";
 export const PRODUCT_CATEGORIES_STORAGE_KEY = "terre_spa_product_categories_data";
 
 export const INITIAL_SERVICE_CATEGORIES: ServiceCategory[] = [
@@ -707,6 +708,52 @@ export const clearDeletedOrderId = (id: string): void => {
   } catch (e) {}
 };
 
+export const INITIAL_COUPONS: Coupon[] = [
+  {
+    id: "cp-terre20",
+    code: "TERRE20",
+    description: "Giảm 20% tổng hóa đơn (tối đa 150.000đ)",
+    discountType: "percentage",
+    discountValue: 20,
+    maxDiscountAmount: 150000,
+    minOrderValue: 200000,
+    startDate: "2026-09-01",
+    endDate: "2026-12-31",
+    usageLimit: 500,
+    usedCount: 28,
+    isActive: true,
+    createdAt: "2026-09-01T00:00:00.000Z",
+  },
+  {
+    id: "cp-chaospa50k",
+    code: "SPA50K",
+    description: "Giảm 50.000đ cho đơn hàng từ 300.000đ",
+    discountType: "fixed_amount",
+    discountValue: 50000,
+    minOrderValue: 300000,
+    startDate: "2026-09-15",
+    endDate: "2026-11-30",
+    usageLimit: 200,
+    usedCount: 45,
+    isActive: true,
+    createdAt: "2026-09-15T00:00:00.000Z",
+  },
+  {
+    id: "cp-vip100k",
+    code: "VIP100K",
+    description: "Giảm 100.000đ cho hóa đơn mua sắm từ 600.000đ",
+    discountType: "fixed_amount",
+    discountValue: 100000,
+    minOrderValue: 600000,
+    startDate: "2026-09-01",
+    endDate: "2026-12-31",
+    usageLimit: 100,
+    usedCount: 12,
+    isActive: true,
+    createdAt: "2026-09-01T00:00:00.000Z",
+  },
+];
+
 export const INITIAL_ORDERS: Order[] = [
   {
     id: "ORD-2026-0901",
@@ -724,10 +771,13 @@ export const INITIAL_ORDERS: Order[] = [
         volumeOrWeight: "25g",
       },
     ],
-    totalAmount: 378000,
+    subtotalAmount: 378000,
+    couponCode: "SPA50K",
+    discountAmount: 50000,
+    totalAmount: 328000,
     status: "confirmed",
     createdAt: "2026-09-21T14:30:00.000Z",
-    source: "website_product_modal",
+    source: "website_cart",
     adminNotes: "Đã gọi điện xác nhận đơn. Khách hẹn ship trước 17h chiều nay.",
   },
   {
@@ -746,13 +796,133 @@ export const INITIAL_ORDERS: Order[] = [
         volumeOrWeight: "Set 4 món",
       },
     ],
-    totalAmount: 890000,
+    subtotalAmount: 890000,
+    couponCode: "TERRE20",
+    discountAmount: 150000,
+    totalAmount: 740000,
     status: "pending",
     createdAt: "2026-09-22T08:15:00.000Z",
-    source: "website_product_modal",
+    source: "website_cart",
     adminNotes: "Khách mới đặt sáng nay, cần nhân viên gọi tư vấn thêm về thiệp chúc mừng.",
   },
 ];
+
+// Helper functions for Coupons
+export const getStoredCoupons = (): Coupon[] => {
+  try {
+    const saved = localStorage.getItem(COUPONS_STORAGE_KEY);
+    if (saved !== null) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to load coupons from LocalStorage", e);
+  }
+  return INITIAL_COUPONS;
+};
+
+export const saveStoredCoupons = (coupons: Coupon[]): void => {
+  try {
+    localStorage.setItem(COUPONS_STORAGE_KEY, JSON.stringify(coupons));
+    recordLocalMutation();
+    checkAndAutoSync({
+      posts: getStoredPosts(),
+      products: getStoredProducts(),
+      serviceCategories: getStoredServices(),
+      reviews: getStoredReviews(),
+      orders: getStoredOrders(),
+      coupons,
+      productCategories: getStoredProductCategories(),
+      deletedOrderIds: Array.from(getDeletedOrderIds()),
+    });
+  } catch (e) {
+    console.error("Failed to save coupons to LocalStorage", e);
+  }
+};
+
+export const validateAndApplyCoupon = (
+  rawCode: string,
+  subtotal: number
+): {
+  valid: boolean;
+  coupon?: Coupon;
+  discountAmount: number;
+  finalTotal: number;
+  message: string;
+} => {
+  const code = (rawCode || "").trim().toUpperCase();
+  if (!code) {
+    return { valid: false, discountAmount: 0, finalTotal: subtotal, message: "Vui lòng nhập mã giảm giá." };
+  }
+
+  const coupons = getStoredCoupons();
+  const coupon = coupons.find((c) => c.code.toUpperCase() === code);
+
+  if (!coupon) {
+    return { valid: false, discountAmount: 0, finalTotal: subtotal, message: `Mã ưu đãi "${code}" không tồn tại.` };
+  }
+
+  if (!coupon.isActive) {
+    return { valid: false, discountAmount: 0, finalTotal: subtotal, message: `Mã ưu đãi "${code}" hiện đang tạm khóa.` };
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (coupon.startDate && coupon.startDate > todayStr) {
+    return { valid: false, discountAmount: 0, finalTotal: subtotal, message: `Mã ưu đãi "${code}" chưa đến ngày áp dụng.` };
+  }
+
+  if (coupon.endDate && coupon.endDate < todayStr) {
+    return { valid: false, discountAmount: 0, finalTotal: subtotal, message: `Mã ưu đãi "${code}" đã hết hạn sử dụng.` };
+  }
+
+  if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+    return { valid: false, discountAmount: 0, finalTotal: subtotal, message: `Mã ưu đãi "${code}" đã hết số lượt sử dụng.` };
+  }
+
+  if (coupon.minOrderValue && subtotal < coupon.minOrderValue) {
+    const formattedMin = new Intl.NumberFormat("vi-VN").format(coupon.minOrderValue);
+    return {
+      valid: false,
+      discountAmount: 0,
+      finalTotal: subtotal,
+      message: `Đơn hàng tối thiểu ${formattedMin}đ để áp dụng mã này (hiện tại: ${new Intl.NumberFormat("vi-VN").format(subtotal)}đ).`,
+    };
+  }
+
+  let discount = 0;
+  if (coupon.discountType === "percentage") {
+    discount = Math.round((subtotal * coupon.discountValue) / 100);
+    if (coupon.maxDiscountAmount && discount > coupon.maxDiscountAmount) {
+      discount = coupon.maxDiscountAmount;
+    }
+  } else {
+    discount = coupon.discountValue;
+  }
+
+  discount = Math.min(discount, subtotal);
+  const finalTotal = Math.max(0, subtotal - discount);
+
+  return {
+    valid: true,
+    coupon,
+    discountAmount: discount,
+    finalTotal,
+    message: `Áp dụng thành công: Giảm ${new Intl.NumberFormat("vi-VN").format(discount)}đ!`,
+  };
+};
+
+export const incrementCouponUsage = (code: string): void => {
+  const coupons = getStoredCoupons();
+  const idx = coupons.findIndex((c) => c.code.toUpperCase() === code.trim().toUpperCase());
+  if (idx >= 0) {
+    coupons[idx] = {
+      ...coupons[idx],
+      usedCount: (coupons[idx].usedCount || 0) + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    saveStoredCoupons(coupons);
+  }
+};
 
 // Helper functions for Orders
 export const getStoredOrders = (): Order[] => {
@@ -788,6 +958,7 @@ export const saveStoredOrders = (orders: Order[]): void => {
       serviceCategories: getStoredServices(),
       reviews: getStoredReviews(),
       orders,
+      coupons: getStoredCoupons(),
       productCategories: getStoredProductCategories(),
       deletedOrderIds: Array.from(getDeletedOrderIds()),
     });
@@ -802,6 +973,9 @@ export const createOrder = (orderData: {
   customerAddress?: string;
   customerNotes?: string;
   items: Order["items"];
+  subtotalAmount?: number;
+  couponCode?: string;
+  discountAmount?: number;
   totalAmount: number;
   source?: string;
   adminNotes?: string;
@@ -813,6 +987,9 @@ export const createOrder = (orderData: {
     customerAddress: orderData.customerAddress?.trim(),
     customerNotes: orderData.customerNotes?.trim(),
     items: orderData.items,
+    subtotalAmount: orderData.subtotalAmount || orderData.totalAmount,
+    couponCode: orderData.couponCode,
+    discountAmount: orderData.discountAmount || 0,
     totalAmount: orderData.totalAmount,
     status: "pending",
     createdAt: new Date().toISOString(),
@@ -820,6 +997,10 @@ export const createOrder = (orderData: {
     source: orderData.source || "website_product_modal",
     adminNotes: orderData.adminNotes,
   };
+
+  if (orderData.couponCode) {
+    incrementCouponUsage(orderData.couponCode);
+  }
 
   const currentOrders = getStoredOrders();
   const updatedOrders = [newOrder, ...currentOrders];

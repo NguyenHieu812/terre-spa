@@ -1,13 +1,29 @@
 import LogoTerre from "../assets/images/logo-terre-removebg.png";
 import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ShoppingBag } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getCartCount, TERRE_CART_UPDATED_EVENT } from "../utils/cartStore";
+import { CartDrawer } from "./CartDrawer";
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [cartCount, setCartCount] = useState<number>(() => getCartCount());
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
+
+  useEffect(() => {
+    const handleCartUpdate = (e: any) => {
+      setCartCount(e.detail?.count !== undefined ? e.detail.count : getCartCount());
+    };
+    window.addEventListener(TERRE_CART_UPDATED_EVENT, handleCartUpdate);
+    return () => {
+      window.removeEventListener(TERRE_CART_UPDATED_EVENT, handleCartUpdate);
+    };
+  }, []);
+
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-brand-100">
@@ -33,19 +49,53 @@ const Navbar: React.FC = () => {
             <Link to="/posts" className="hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 hover:after:w-full after:bg-brand-600 after:transition-all text-brand-900 font-bold">Bài viết</Link>
             <a href="/#reviews" className="hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 hover:after:w-full after:bg-brand-600 after:transition-all">Đánh giá</a>
             <Link to="/feedback" className="hover:text-brand-600 transition-colors relative after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 hover:after:w-full after:bg-brand-600 after:transition-all">Feedback</Link>
+
+            {/* Shopping Cart Button */}
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2.5 text-brand-800 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-all flex items-center justify-center cursor-pointer"
+              title="Giỏ hàng của bạn"
+            >
+              <ShoppingBag className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[19px] h-[19px] px-1 bg-brand-800 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-xs animate-in zoom-in">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </button>
+
             <a href="/#book" className="px-5 py-2.5 bg-brand-800 text-white hover:bg-brand-950 transition-all shadow-sm tracking-widest hover:-translate-y-0.5 active:translate-y-0 duration-300 rounded-sm">
               Đặt lịch ngay
             </a>
           </div>
 
-          {/* Mobile Hamburger Button (Chỉ hiện trên Mobile/Tablet) */}
-          <button
-            onClick={toggleMenu}
-            className="flex lg:hidden p-2 text-brand-800 hover:text-brand-950 transition-colors focus:outline-none z-50"
-            aria-label={isOpen ? "Đóng menu" : "Mở menu"}
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile Right Controls */}
+          <div className="flex lg:hidden items-center gap-2">
+            {/* Mobile Cart Button */}
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2 text-brand-800 hover:text-brand-600 rounded-full transition-colors flex items-center justify-center"
+              aria-label="Giỏ hàng"
+            >
+              <ShoppingBag className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 bg-brand-800 text-white rounded-full text-[9px] font-bold flex items-center justify-center border-2 border-white shadow-xs">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Hamburger Button */}
+            <button
+              onClick={toggleMenu}
+              className="p-2 text-brand-800 hover:text-brand-950 transition-colors focus:outline-none z-50"
+              aria-label={isOpen ? "Đóng menu" : "Mở menu"}
+            >
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </nav>
       {/* Mobile Menu Overlay Panel */}
@@ -114,8 +164,11 @@ const Navbar: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Slide-out Cart Drawer */}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
-  )
-}
+  );
+};
 
 export default Navbar;

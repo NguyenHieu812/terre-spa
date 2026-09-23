@@ -44,6 +44,11 @@ export interface Product {
   updatedAt?: string;
 }
 
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
 export interface OrderItem {
   productId: string;
   productName: string;
@@ -62,12 +67,34 @@ export interface Order {
   customerAddress?: string;
   customerNotes?: string;
   items: OrderItem[];
-  totalAmount: number;
+  subtotalAmount?: number; // Tổng giá trị hàng hóa trước giảm
+  couponCode?: string; // Mã giảm giá áp dụng (nếu có)
+  discountAmount?: number; // Số tiền được giảm (VNĐ)
+  totalAmount: number; // Tổng tiền thanh toán thực tế
   status: OrderStatus;
   createdAt: string;
   updatedAt?: string;
-  source?: string; // "website_product_modal" | "website_booking" | "direct"
+  source?: string; // "website_product_modal" | "website_cart" | "website_booking" | "direct"
   adminNotes?: string; // Ghi chú tư vấn, chăm sóc khách hàng
+}
+
+export type CouponDiscountType = "percentage" | "fixed_amount";
+
+export interface Coupon {
+  id: string; // e.g. "CP-1790135858000"
+  code: string; // e.g. "TERRE20", "SPA50K"
+  description: string; // "Giảm 20% tổng đơn hàng cho thành viên mới"
+  discountType: CouponDiscountType; // "percentage" | "fixed_amount"
+  discountValue: number; // e.g. 20 (20%) hoặc 50000 (50.000đ)
+  maxDiscountAmount?: number; // Giảm tối đa VNĐ (khi discountType = "percentage")
+  minOrderValue?: number; // Giá trị đơn hàng tối thiểu (VNĐ)
+  startDate?: string; // "2026-09-01"
+  endDate?: string; // "2026-12-31"
+  usageLimit?: number; // Giới hạn tổng số lượt dùng
+  usedCount: number; // Số lượt đã sử dụng
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CloudflareConfig {
@@ -116,6 +143,7 @@ export interface AppDataPayload {
   serviceCategories?: ServiceCategory[];
   reviews?: CustomerReview[];
   orders?: Order[];
+  coupons?: Coupon[];
   productCategories?: string[];
   version: string;
   lastUpdated: string;
@@ -128,12 +156,17 @@ export interface CrudPermission {
   delete: boolean;
 }
 
+export interface OrderPermissions extends CrudPermission {
+  revertFinishedStatus?: boolean; // Quyền chuyển từ Hoàn thành/Đã hủy về Chờ xác nhận/Đang giao
+}
+
 export interface AdminPermissions {
   posts: CrudPermission;
   products: CrudPermission;
   services: CrudPermission;
   reviews: CrudPermission;
-  orders?: CrudPermission;
+  orders?: OrderPermissions;
+  coupons?: CrudPermission;
   cloudflare?: {
     view: boolean;
     sync: boolean;
@@ -152,5 +185,3 @@ export interface AdminUser {
   lastLogin?: string;
   isActive?: boolean;
 }
-
-
