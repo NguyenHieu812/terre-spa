@@ -1157,11 +1157,39 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
         }
       }
 
+      // Deep Service Categories & Services Merge
       const currentLocalServices = getStoredServices();
       const serverCatMap = new Map((filteredServices || []).map((c) => [c.id, c]));
-      const finalServices = [...(filteredServices || [])];
+      const finalServices: ServiceCategory[] = [];
       let hasLocalOnlyServices = false;
 
+      // 1. Process server categories and merge their services with local services
+      for (const sCat of (filteredServices || [])) {
+        const localCat = currentLocalServices.find((lc) => lc.id === sCat.id);
+        if (!localCat) {
+          finalServices.push(sCat);
+        } else {
+          const serverSvcMap = new Map((sCat.services || []).map((s) => [s.id, s]));
+          const mergedSvcs = [...(sCat.services || [])];
+
+          for (const localSvc of (localCat.services || [])) {
+            if (!deletedServiceIds.has(localSvc.id) && !serverSvcMap.has(localSvc.id)) {
+              mergedSvcs.push(localSvc);
+              hasLocalOnlyServices = true;
+            }
+          }
+
+          finalServices.push({
+            ...sCat,
+            title: localCat.title || sCat.title,
+            image: localCat.image || sCat.image,
+            iconName: localCat.iconName || sCat.iconName,
+            services: mergedSvcs,
+          });
+        }
+      }
+
+      // 2. Add local-only categories that don't exist on server
       for (const lc of currentLocalServices) {
         if (!deletedServiceIds.has(lc.id) && !serverCatMap.has(lc.id)) {
           finalServices.push(lc);

@@ -502,7 +502,9 @@ export default {
             }
             if (Array.isArray(deletedServiceIds) && deletedServiceIds.length > 0) {
               const dPlaceholders = deletedServiceIds.map(() => "?").join(",");
+              await db.prepare(`DELETE FROM service_categories WHERE id IN (${dPlaceholders})`).bind(...deletedServiceIds).run();
               await db.prepare(`DELETE FROM services WHERE id IN (${dPlaceholders})`).bind(...deletedServiceIds).run();
+              await db.prepare(`DELETE FROM services WHERE category_id IN (${dPlaceholders})`).bind(...deletedServiceIds).run();
             }
             if (Array.isArray(deletedOrderIds) && deletedOrderIds.length > 0) {
               const dPlaceholders = deletedOrderIds.map(() => "?").join(",");
