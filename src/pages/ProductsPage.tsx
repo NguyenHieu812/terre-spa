@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   Clock,
   ArrowRight,
+  Image as ImageIcon,
 } from "lucide-react";
 import { usePageSEO } from "../hooks/usePageSEO";
 import facialCareImg from "../assets/images/spa_facial_care_1781704209004.jpg";
@@ -40,6 +41,7 @@ export const ProductsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [activeModalImage, setActiveModalImage] = useState<string>("");
 
   // Order form states
   const [customerName, setCustomerName] = useState("");
@@ -87,6 +89,7 @@ export const ProductsPage: React.FC = () => {
       const found = products.find((p) => p.slug === slug || p.id === slug);
       if (found) {
         setSelectedProduct(found);
+        setActiveModalImage(found.thumbnail || found.images?.[0] || "");
       }
     } else {
       if (location.pathname === "/products") {
@@ -97,6 +100,7 @@ export const ProductsPage: React.FC = () => {
 
   const handleOpenProduct = (product: Product) => {
     setSelectedProduct(product);
+    setActiveModalImage(product.thumbnail || product.images?.[0] || "");
     setCreatedOrder(null);
     navigate(`/products/${product.slug || product.id}`, { replace: false });
   };
@@ -401,29 +405,77 @@ export const ProductsPage: React.FC = () => {
                   <X className="w-5 h-5" />
                 </button>
 
-                {/* Modal Left Image (Proper Desktop Ratio & Sizing) */}
-                <div className="md:w-5/12 bg-brand-100 aspect-square md:aspect-auto relative shrink-0 min-h-[280px] md:min-h-[500px]">
-                  <img
-                    src={selectedProduct.thumbnail || facialCareImg}
-                    alt={selectedProduct.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = facialCareImg;
-                    }}
-                  />
+                {/* Modal Left Image & Gallery (Fix Square Ratio & Add Multi-Image Gallery) */}
+                <div className="md:w-5/12 lg:w-1/2 p-5 md:p-6 bg-brand-50/50 border-b md:border-b-0 md:border-r border-brand-100 flex flex-col items-center justify-start shrink-0">
+                  {/* Main Active Image Box */}
+                  <div className="w-full aspect-square max-w-[380px] rounded-2xl overflow-hidden bg-white border border-brand-200 relative flex items-center justify-center shadow-xs">
+                    <img
+                      src={activeModalImage || selectedProduct.thumbnail || facialCareImg}
+                      alt={selectedProduct.name}
+                      className="w-full h-full object-contain p-2"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = facialCareImg;
+                      }}
+                    />
 
-                  {/* Badges */}
-                  {selectedProduct.featured && (
-                    <span className="absolute top-4 left-4 bg-brand-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-amber-300" /> Bán chạy
-                    </span>
-                  )}
+                    {/* Badges */}
+                    {selectedProduct.featured && (
+                      <span className="absolute top-3 left-3 bg-brand-900 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-300" /> Bán chạy
+                      </span>
+                    )}
 
-                  {calcDiscountPercent(selectedProduct.originalPrice, selectedProduct.price) > 0 && (
-                    <span className="absolute top-4 right-14 md:right-4 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
-                      -{calcDiscountPercent(selectedProduct.originalPrice, selectedProduct.price)}% SALE
-                    </span>
-                  )}
+                    {calcDiscountPercent(selectedProduct.originalPrice, selectedProduct.price) > 0 && (
+                      <span className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
+                        -{calcDiscountPercent(selectedProduct.originalPrice, selectedProduct.price)}% SALE
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Gallery Thumbnails Strip (Ảnh chính + Ảnh phụ) */}
+                  {(() => {
+                    const allGalleryImages = Array.from(
+                      new Set(
+                        [selectedProduct.thumbnail, ...(selectedProduct.images || [])].filter(
+                          Boolean
+                        )
+                      )
+                    );
+                    if (allGalleryImages.length <= 1) return null;
+                    return (
+                      <div className="w-full max-w-[380px] mt-3 space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-brand-500 tracking-wider flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3 text-brand-400" /> Bộ sưu tập ảnh ({allGalleryImages.length})
+                        </span>
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                          {allGalleryImages.map((imgUrl, idx) => {
+                            const isCurrent = (activeModalImage || selectedProduct.thumbnail) === imgUrl;
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setActiveModalImage(imgUrl)}
+                                className={`w-14 h-14 rounded-xl border-2 overflow-hidden shrink-0 bg-white p-0.5 transition-all cursor-pointer ${
+                                  isCurrent
+                                    ? "border-brand-900 ring-2 ring-brand-900/20 shadow-xs scale-105"
+                                    : "border-brand-200 opacity-60 hover:opacity-100 hover:border-brand-400"
+                                }`}
+                              >
+                                <img
+                                  src={imgUrl}
+                                  alt={`Ảnh ${idx + 1}`}
+                                  className="w-full h-full object-contain rounded-lg"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = facialCareImg;
+                                  }}
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Modal Right Info & Order */}
@@ -475,11 +527,16 @@ export const ProductsPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Description */}
+                    {/* Description (Short Desc & Rich HTML Full Desc) */}
                     <div className="text-xs text-brand-700 space-y-2.5 leading-relaxed">
-                      <p className="font-semibold text-brand-900">{selectedProduct.shortDesc}</p>
+                      {selectedProduct.shortDesc && (
+                        <p className="font-semibold text-brand-900 text-[13px]">{selectedProduct.shortDesc}</p>
+                      )}
                       {selectedProduct.fullDesc && (
-                        <p className="whitespace-pre-line text-brand-800">{selectedProduct.fullDesc}</p>
+                        <div
+                          className="prose prose-sm max-w-none text-brand-800 leading-relaxed space-y-2 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-brand-950 [&_h2]:mt-2 [&_h3]:text-xs [&_h3]:font-bold [&_h3]:text-brand-900 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-1 [&_strong]:font-bold [&_strong]:text-brand-950 [&_img]:rounded-xl [&_img]:max-h-64 [&_img]:mx-auto"
+                          dangerouslySetInnerHTML={{ __html: selectedProduct.fullDesc }}
+                        />
                       )}
                     </div>
 

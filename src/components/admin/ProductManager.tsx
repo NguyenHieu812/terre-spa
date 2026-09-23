@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Product } from "../../types";
 import { compressImageFile } from "../../utils/imageUtils";
+import { WysiwygEditor } from "./WysiwygEditor";
 import {
   getStoredProductCategories,
   addProductCategory,
@@ -28,6 +29,8 @@ import {
   ShoppingBag,
   Phone,
   HelpCircle,
+  Images,
+  Star,
 } from "lucide-react";
 import hairWashImg from "../../assets/images/spa_hair_wash_1781704187306.jpg";
 import massageDetail from "../../assets/images/spa_massage_detail_1781666753905.jpg";
@@ -66,6 +69,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [isCreating, setIsCreating] = useState(false);
   const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [activePreviewImage, setActivePreviewImage] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStock, setFilterStock] = useState("all");
@@ -73,6 +77,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [isBulkIngredients, setIsBulkIngredients] = useState(false);
   const [bulkIngredientsText, setBulkIngredientsText] = useState("");
   const [toastMessage, setToastMessage] = useState("");
+  const [galleryUrlInput, setGalleryUrlInput] = useState("");
 
   // Dynamic categories
   const [categories, setCategories] = useState<string[]>(() => getStoredProductCategories());
@@ -109,9 +114,9 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       price: 189000,
       originalPrice: 250000,
       thumbnail: facialCareImg,
-      images: [facialCareImg],
+      images: [facialCareImg, SanhChoSangTrong],
       shortDesc: "",
-      fullDesc: "",
+      fullDesc: "<h2>Công dụng &amp; Thành phần chính</h2><p>Nhập mô tả sản phẩm chi tiết...</p>",
       inStock: true,
       featured: false,
       rating: 5.0,
@@ -131,7 +136,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   };
 
   const handleStartEdit = (prod: Product) => {
-    setEditingProduct({ ...prod });
+    setEditingProduct({ ...prod, images: prod.images || (prod.thumbnail ? [prod.thumbnail] : []) });
     setIsCreating(false);
     setIsBulkIngredients(false);
     setBulkIngredientsText(prod.ingredients?.join(", ") || "");
@@ -146,6 +151,60 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       setVolumeAmount("");
       setVolumeUnit(vw);
     }
+  };
+
+  const handleOpenPreview = (prod: Product) => {
+    setPreviewProduct(prod);
+    setActivePreviewImage(prod.thumbnail || prod.images?.[0] || "");
+  };
+
+  // Gallery images handlers
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !editingProduct) return;
+    try {
+      const compressedList: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const base64 = await compressImageFile(files[i], 1000, 1000, 0.82);
+        compressedList.push(base64);
+      }
+      const existing = editingProduct.images || [];
+      setEditingProduct({
+        ...editingProduct,
+        images: [...existing, ...compressedList],
+      });
+      showToast(`Đã thêm ${compressedList.length} ảnh phụ vào bộ sưu tập!`);
+    } catch (err) {
+      alert("Lỗi khi tải ảnh. Vui lòng thử lại!");
+    }
+    e.target.value = "";
+  };
+
+  const handleRemoveGalleryImage = (idx: number) => {
+    if (!editingProduct) return;
+    const current = [...(editingProduct.images || [])];
+    current.splice(idx, 1);
+    setEditingProduct({ ...editingProduct, images: current });
+  };
+
+  const handleSetAsThumbnail = (imageUrl: string) => {
+    if (!editingProduct) return;
+    setEditingProduct({
+      ...editingProduct,
+      thumbnail: imageUrl,
+    });
+    showToast("Đã đặt làm ảnh đại diện chính!");
+  };
+
+  const handleAddGalleryUrl = () => {
+    if (!galleryUrlInput.trim() || !editingProduct) return;
+    const current = editingProduct.images || [];
+    setEditingProduct({
+      ...editingProduct,
+      images: [...current, galleryUrlInput.trim()],
+    });
+    setGalleryUrlInput("");
+    showToast("Đã thêm ảnh phụ thành công!");
   };
 
   // Fast Comma / Semicolon Ingredients Parser
@@ -440,14 +499,13 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-brand-800 mb-2">
-                  Mô tả chi tiết sản phẩm (Full Description)
+                  Mô tả chi tiết sản phẩm (Trình soạn thảo WYSIWYG)
                 </label>
-                <textarea
-                  rows={6}
-                  value={editingProduct.fullDesc}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, fullDesc: e.target.value })}
-                  placeholder="Chi tiết về nguồn gốc, quy trình chiết xuất thủ công, công dụng toàn diện..."
-                  className="w-full px-3.5 py-2.5 text-sm border border-brand-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-brand-800 bg-white leading-relaxed"
+                <WysiwygEditor
+                  value={editingProduct.fullDesc || ""}
+                  onChange={(html) => setEditingProduct({ ...editingProduct, fullDesc: html })}
+                  placeholder="Soạn thảo mô tả chi tiết sản phẩm, công dụng, thành phần khoa học, chứng nhận chuẩn spa..."
+                  minHeight="260px"
                 />
               </div>
             </div>
@@ -914,6 +972,97 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Secondary / Gallery Images Card */}
+            <div className="bg-white p-5 rounded-2xl border border-brand-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-brand-100 pb-2">
+                <h3 className="text-sm font-serif font-bold text-brand-900 flex items-center gap-2">
+                  <Images className="w-4 h-4 text-brand-600" /> Ảnh phụ &amp; Bộ sưu tập ({(editingProduct.images || []).length})
+                </h3>
+                {(editingProduct.images || []).length > 0 && (
+                  <span className="text-[11px] text-brand-500 font-medium">
+                    {(editingProduct.images || []).length} ảnh
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {/* Current Gallery Images List */}
+                {(editingProduct.images || []).length === 0 ? (
+                  <div className="p-4 bg-brand-50/50 rounded-xl border border-dashed border-brand-200 text-center">
+                    <Images className="w-6 h-6 text-brand-400 mx-auto mb-1" />
+                    <p className="text-xs text-brand-500">Chưa có ảnh phụ nào</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(editingProduct.images || []).map((imgUrl, idx) => (
+                      <div
+                        key={idx}
+                        className="relative group aspect-square rounded-xl overflow-hidden bg-white border border-brand-200 shadow-2xs flex items-center justify-center p-1"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`Ảnh phụ ${idx + 1}`}
+                          className="w-full h-full object-contain rounded-lg"
+                        />
+                        {/* Overlay action buttons */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => handleSetAsThumbnail(imgUrl)}
+                            title="Đặt làm ảnh đại diện chính"
+                            className="p-1.5 bg-brand-900 text-white hover:bg-brand-800 rounded-lg text-xs"
+                          >
+                            <Star className="w-3 h-3 text-amber-300" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryImage(idx)}
+                            title="Xoá ảnh phụ này"
+                            className="p-1.5 bg-red-600 text-white hover:bg-red-700 rounded-lg text-xs"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload multiple images */}
+                <div>
+                  <label className="cursor-pointer flex items-center justify-center gap-2 px-3 py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-900 rounded-xl text-xs font-semibold border border-brand-200 transition-colors shadow-xs">
+                    <Upload className="w-3.5 h-3.5 text-brand-700" />
+                    <span>+ Thêm ảnh phụ (Chọn nhiều ảnh)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleGalleryUpload}
+                    />
+                  </label>
+                </div>
+
+                {/* Add by URL */}
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={galleryUrlInput}
+                    onChange={(e) => setGalleryUrlInput(e.target.value)}
+                    placeholder="Nhập URL ảnh phụ..."
+                    className="flex-1 px-3 py-2 text-xs border border-brand-200 rounded-xl focus:outline-none focus:border-brand-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddGalleryUrl}
+                    className="px-3 py-2 bg-brand-800 text-white text-xs font-semibold rounded-xl hover:bg-brand-900"
+                  >
+                    Thêm
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </form>
 
@@ -930,23 +1079,56 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 <X className="w-5 h-5" />
               </button>
 
-              {/* Left Column (Image) */}
-              <div className="md:w-1/2 bg-brand-100 relative shrink-0 min-h-[300px] md:min-h-[480px]">
-                <img
-                  src={previewProduct.thumbnail || facialCareImg}
-                  alt={previewProduct.name}
-                  className="w-full h-full object-cover"
-                />
-                {previewProduct.featured && (
-                  <span className="absolute top-4 left-4 bg-brand-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-300" /> Bán chạy
-                  </span>
-                )}
-                {calcDiscountPercent(previewProduct.originalPrice, previewProduct.price) > 0 && (
-                  <span className="absolute top-4 right-14 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
-                    -{calcDiscountPercent(previewProduct.originalPrice, previewProduct.price)}% SALE
-                  </span>
-                )}
+              {/* Left Column (Square Preview + Gallery Strip) */}
+              <div className="md:w-5/12 lg:w-1/2 p-5 md:p-6 bg-brand-50/50 border-b md:border-b-0 md:border-r border-brand-100 flex flex-col items-center justify-start shrink-0">
+                <div className="w-full aspect-square max-w-[360px] rounded-2xl overflow-hidden bg-white border border-brand-200 relative flex items-center justify-center shadow-xs">
+                  <img
+                    src={activePreviewImage || previewProduct.thumbnail || facialCareImg}
+                    alt={previewProduct.name}
+                    className="w-full h-full object-contain p-2"
+                  />
+                  {previewProduct.featured && (
+                    <span className="absolute top-3 left-3 bg-brand-900 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-300" /> Bán chạy
+                    </span>
+                  )}
+                  {calcDiscountPercent(previewProduct.originalPrice, previewProduct.price) > 0 && (
+                    <span className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.8 rounded-full shadow-md">
+                      -{calcDiscountPercent(previewProduct.originalPrice, previewProduct.price)}% SALE
+                    </span>
+                  )}
+                </div>
+
+                {/* Gallery strip */}
+                {(() => {
+                  const allImages = Array.from(
+                    new Set([previewProduct.thumbnail, ...(previewProduct.images || [])].filter(Boolean))
+                  );
+                  if (allImages.length <= 1) return null;
+                  return (
+                    <div className="w-full max-w-[360px] mt-3 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-brand-500 tracking-wider flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3 text-brand-400" /> Bộ sưu tập ảnh ({allImages.length})
+                      </span>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                        {allImages.map((imgUrl, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActivePreviewImage(imgUrl)}
+                            className={`w-12 h-12 rounded-xl border-2 overflow-hidden shrink-0 bg-white p-0.5 transition-all cursor-pointer ${
+                              (activePreviewImage || previewProduct.thumbnail) === imgUrl
+                                ? "border-brand-900 ring-2 ring-brand-900/20 shadow-xs scale-105"
+                                : "border-brand-200 opacity-60 hover:opacity-100"
+                            }`}
+                          >
+                            <img src={imgUrl} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-contain rounded-lg" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Right Column (Info) */}
@@ -978,9 +1160,16 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                     )}
                   </div>
 
-                  <p className="text-xs text-brand-700 leading-relaxed">
-                    {previewProduct.shortDesc || previewProduct.fullDesc || "Chưa có mô tả chi tiết sản phẩm."}
-                  </p>
+                  {previewProduct.shortDesc && (
+                    <p className="font-semibold text-brand-900 text-xs">{previewProduct.shortDesc}</p>
+                  )}
+
+                  {previewProduct.fullDesc && (
+                    <div
+                      className="prose prose-sm max-w-none text-brand-800 leading-relaxed text-xs space-y-2 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-brand-950 [&_h2]:mt-2 [&_h3]:text-xs [&_h3]:font-bold [&_h3]:text-brand-900 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-1 [&_strong]:font-bold [&_strong]:text-brand-950"
+                      dangerouslySetInnerHTML={{ __html: previewProduct.fullDesc }}
+                    />
+                  )}
 
                   {/* Ingredients */}
                   {previewProduct.ingredients && previewProduct.ingredients.length > 0 && (
@@ -1193,7 +1382,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => setPreviewProduct(prod)}
+                            onClick={() => handleOpenPreview(prod)}
                             title="Xem trước sản phẩm"
                             className="p-1.5 text-brand-700 hover:text-brand-950 hover:bg-brand-100 rounded-lg transition-colors"
                           >
