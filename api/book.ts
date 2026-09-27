@@ -34,10 +34,10 @@ export default async function handler(req: any, res: any) {
       },
       body: JSON.stringify({ name, phone, service, date, time, notes }),
     });
-    
+
     // We expect the script to return a JSON success message
     const data = await response.json().catch(() => ({}));
-    
+
     if (data.success || response.ok) {
       return res.status(200).json({ success: true, message: "Booking confirmed successfully!" });
     } else {

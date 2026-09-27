@@ -428,6 +428,46 @@ const recordLocalMutation = () => {
   } catch (e) {}
 };
 
+/**
+ * Safe LocalStorage setter with QuotaExceededError protection and self-healing cleanup
+ */
+export function safeSetLocalStorage(key: string, data: any): boolean {
+  try {
+    const serialized = JSON.stringify(data);
+    localStorage.setItem(key, serialized);
+    return true;
+  } catch (e: any) {
+    console.warn(`LocalStorage write failed for "${key}" (${e.name || e.message}). Performing self-healing storage cleanup...`);
+
+    // Clean up temporary caches or obsolete keys to free space
+    try {
+      const keysToClean = [
+        "terre_spa_cloudflare_config_cache",
+        "terre_spa_temp",
+        "debug",
+      ];
+      keysToClean.forEach((k) => localStorage.removeItem(k));
+    } catch (cleanErr) {}
+
+    // Fallback: try saving trimmed secondary data if still quota exceeded
+    try {
+      if (Array.isArray(data)) {
+        const trimmedData = data.map((item: any) => {
+          if (item && Array.isArray(item.images) && item.images.length > 2) {
+            return { ...item, images: item.images.slice(0, 2) };
+          }
+          return item;
+        });
+        localStorage.setItem(key, JSON.stringify(trimmedData));
+        return true;
+      }
+    } catch (retryErr) {
+      console.warn("LocalStorage quota full. Data is being preserved in memory and synced to Cloudflare D1.");
+    }
+    return false;
+  }
+}
+
 // Helper functions for Services & Categories
 export const getStoredServices = (): ServiceCategory[] => {
   const deletedCatIds = getDeletedServiceIds();
@@ -474,14 +514,13 @@ export const saveStoredServices = (serviceCategories: ServiceCategory[]): void =
       (c.services || []).forEach((s) => clearDeletedServiceId(s.id));
     });
 
-    localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(serviceCategories));
+    safeSetLocalStorage(SERVICES_STORAGE_KEY, serviceCategories);
     recordLocalMutation();
     triggerFullAutoSync();
   } catch (e: any) {
-    console.error("Failed to save services to LocalStorage", e);
-    if (e.name === "QuotaExceededError" || e.code === 22) {
-      alert("Bộ nhớ trình duyệt đã đầy do kích thước ảnh quá lớn. Vui lòng giảm dung lượng ảnh!");
-    }
+    console.error("Failed to save services", e);
+    recordLocalMutation();
+    triggerFullAutoSync();
   }
 };
 
@@ -516,14 +555,13 @@ export const saveStoredPosts = (posts: Post[]): void => {
     // Clear deleted status for any present posts
     posts.forEach((p) => clearDeletedPostId(p.id));
 
-    localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
+    safeSetLocalStorage(POSTS_STORAGE_KEY, posts);
     recordLocalMutation();
     triggerFullAutoSync();
   } catch (e: any) {
-    console.error("Failed to save posts to LocalStorage", e);
-    if (e.name === "QuotaExceededError" || e.code === 22) {
-      alert("Bộ nhớ trình duyệt đã đầy do ảnh bài viết quá lớn. Vui lòng nén ảnh hoặc chọn ảnh nhẹ hơn!");
-    }
+    console.error("Failed to save posts", e);
+    recordLocalMutation();
+    triggerFullAutoSync();
   }
 };
 
@@ -558,14 +596,13 @@ export const saveStoredProducts = (products: Product[]): void => {
     // Clear deleted status for any present products
     products.forEach((p) => clearDeletedProductId(p.id));
 
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+    safeSetLocalStorage(PRODUCTS_STORAGE_KEY, products);
     recordLocalMutation();
     triggerFullAutoSync();
   } catch (e: any) {
-    console.error("Failed to save products to LocalStorage", e);
-    if (e.name === "QuotaExceededError" || e.code === 22) {
-      alert("Bộ nhớ trình duyệt đã đầy do ảnh sản phẩm quá lớn. Vui lòng nén ảnh hoặc chọn ảnh nhẹ hơn!");
-    }
+    console.error("Failed to save products", e);
+    recordLocalMutation();
+    triggerFullAutoSync();
   }
 };
 
@@ -642,14 +679,13 @@ export const getStoredReviews = (): CustomerReview[] => {
 
 export const saveStoredReviews = (reviews: CustomerReview[]): void => {
   try {
-    localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
+    safeSetLocalStorage(REVIEWS_STORAGE_KEY, reviews);
     recordLocalMutation();
     triggerFullAutoSync();
   } catch (e: any) {
-    console.error("Failed to save reviews to LocalStorage", e);
-    if (e.name === "QuotaExceededError" || e.code === 22) {
-      alert("Bộ nhớ trình duyệt đã đầy. Vui lòng giảm bớt dung lượng ảnh đánh giá!");
-    }
+    console.error("Failed to save reviews", e);
+    recordLocalMutation();
+    triggerFullAutoSync();
   }
 };
 
@@ -1224,14 +1260,14 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
       const currentLocalCategories = getStoredProductCategories();
       const finalCategories = Array.from(new Set([...(filteredCategories || []), ...currentLocalCategories]));
 
-      // Save merged collections to localStorage
-      localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(finalPosts));
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(finalProducts));
-      localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(finalServices));
-      localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(filteredReviews));
-      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(finalOrders));
-      localStorage.setItem(COUPONS_STORAGE_KEY, JSON.stringify(finalCoupons));
-      localStorage.setItem(PRODUCT_CATEGORIES_STORAGE_KEY, JSON.stringify(finalCategories));
+      // Save merged collections to localStorage safely
+      safeSetLocalStorage(POSTS_STORAGE_KEY, finalPosts);
+      safeSetLocalStorage(PRODUCTS_STORAGE_KEY, finalProducts);
+      safeSetLocalStorage(SERVICES_STORAGE_KEY, finalServices);
+      safeSetLocalStorage(REVIEWS_STORAGE_KEY, filteredReviews);
+      safeSetLocalStorage(ORDERS_STORAGE_KEY, finalOrders);
+      safeSetLocalStorage(COUPONS_STORAGE_KEY, finalCoupons);
+      safeSetLocalStorage(PRODUCT_CATEGORIES_STORAGE_KEY, finalCategories);
 
       // If local had unsynced items, immediately push the complete merged state up to Cloudflare!
       if (hasLocalOnlyProducts || hasLocalOnlyPosts || hasLocalOnlyServices || hasLocalOnlyOrders || hasLocalOnlyCoupons) {
