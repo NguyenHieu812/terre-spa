@@ -47,9 +47,9 @@ export const PostsPage: React.FC = () => {
   const filteredPosts = posts.filter((post) => {
     const matchCat = selectedCategory === "all" || post.category === selectedCategory;
     const matchQuery =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      (post.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (post.excerpt || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (post.tags || []).some((t) => (t || "").toLowerCase().includes(searchQuery.toLowerCase()));
     return matchCat && matchQuery;
   });
 

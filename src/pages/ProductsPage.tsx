@@ -262,9 +262,9 @@ export const ProductsPage: React.FC = () => {
   const filteredProducts = products.filter((p) => {
     const matchCat = selectedCategory === "all" || p.category === selectedCategory;
     const matchQuery =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.shortDesc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.ingredients || []).some((i) => i.toLowerCase().includes(searchQuery.toLowerCase()));
+      (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.shortDesc || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.ingredients || []).some((i) => (i || "").toLowerCase().includes(searchQuery.toLowerCase()));
     return matchCat && matchQuery;
   });
 
