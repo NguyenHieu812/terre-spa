@@ -26,6 +26,7 @@ import {
   deleteAdminUser,
   resetDefaultAdminUsers,
   FULL_PERMISSIONS,
+  normalizeUserPermissions,
 } from "../../services/authStore";
 
 interface UserManagerProps {
@@ -125,7 +126,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
   // Open Permission Modal
   const handleOpenPermissions = (user: AdminUser) => {
     setEditingPermissionsUser(user);
-    setTempPermissions(JSON.parse(JSON.stringify(user.permissions)));
+    setTempPermissions(normalizeUserPermissions(user.permissions));
   };
 
   // Toggle single permission checkbox
@@ -134,7 +135,12 @@ export const UserManager: React.FC<UserManagerProps> = ({
     action: string
   ) => {
     if (!tempPermissions) return;
-    const currentModule = tempPermissions[moduleKey] as any;
+    const currentModule = (tempPermissions[moduleKey] as any) || {
+      view: false,
+      create: false,
+      edit: false,
+      delete: false,
+    };
     const updatedModule = {
       ...currentModule,
       [action]: !currentModule[action],
@@ -275,13 +281,15 @@ export const UserManager: React.FC<UserManagerProps> = ({
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
         createForm.username.trim()
       )}&background=8c6454&color=ffffff`,
-      permissions: {
+      permissions: normalizeUserPermissions({
         posts: { view: true, create: false, edit: false, delete: false },
         products: { view: true, create: false, edit: false, delete: false },
         services: { view: false, create: false, edit: false, delete: false },
         reviews: { view: false, create: false, edit: false, delete: false },
+        orders: { view: true, create: false, edit: false, delete: false, revertFinishedStatus: false },
+        coupons: { view: false, create: false, edit: false, delete: false },
         cloudflare: { view: false, sync: false },
-      },
+      }),
     });
 
     if (res.success) {
@@ -510,10 +518,11 @@ export const UserManager: React.FC<UserManagerProps> = ({
                           <button
                             type="button"
                             onClick={() => handleOpenPermissions(u)}
-                            className="p-2 text-brand-700 hover:text-brand-950 hover:bg-brand-100 rounded-lg transition-colors"
+                            className="px-2.5 py-1.5 text-brand-900 bg-brand-100 hover:bg-brand-200 border border-brand-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs"
                             title="Phân quyền chi tiết cho Admin này"
                           >
-                            <Sliders className="w-4 h-4" />
+                            <Sliders className="w-3.5 h-3.5 text-brand-700" />
+                            <span>Phân quyền</span>
                           </button>
                         )}
 
@@ -627,7 +636,12 @@ export const UserManager: React.FC<UserManagerProps> = ({
 
                 <div className="space-y-3">
                   {MODULE_DEFINITIONS.map((mod) => {
-                    const perm = (tempPermissions as any)[mod.key];
+                    const perm = (tempPermissions as any)?.[mod.key] || {
+                      view: false,
+                      create: false,
+                      edit: false,
+                      delete: false,
+                    };
 
                     return (
                       <div

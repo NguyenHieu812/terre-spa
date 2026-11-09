@@ -86,6 +86,19 @@ export function canUserManageCoupons(user: AdminUser | null, action: "view" | "c
   return !!user.permissions?.coupons?.[action];
 }
 
+export function normalizeUserPermissions(permissions?: Partial<AdminPermissions>): AdminPermissions {
+  const baseCrud = { view: false, create: false, edit: false, delete: false };
+  return {
+    orders: { ...baseCrud, revertFinishedStatus: false, ...(permissions?.orders || {}) },
+    coupons: { ...baseCrud, ...(permissions?.coupons || {}) },
+    products: { ...baseCrud, ...(permissions?.products || {}) },
+    services: { ...baseCrud, ...(permissions?.services || {}) },
+    posts: { ...baseCrud, ...(permissions?.posts || {}) },
+    reviews: { ...baseCrud, ...(permissions?.reviews || {}) },
+    cloudflare: { view: false, sync: false, ...(permissions?.cloudflare || {}) },
+  };
+}
+
 /**
  * Get all stored admin users from LocalStorage
  */
@@ -98,7 +111,13 @@ export function getStoredAdminUsers(): AdminUser[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      return parsed.map((u) => ({
+        ...u,
+        permissions:
+          u.role === "super_admin" || u.username === "admin1"
+            ? FULL_PERMISSIONS
+            : normalizeUserPermissions(u.permissions),
+      }));
     }
     return INITIAL_ADMIN_USERS;
   } catch (e) {
