@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -21,7 +22,9 @@ app.use(express.json());
 // API route to accept a booking and write to Google Sheets via Apps Script Web App
 app.post("/api/book", async (req, res) => {
   const { name, phone, service, date, time, notes } = req.body;
-  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
+  const DEFAULT_SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbzabGjfs7t7WM8c-iqwCtVih2QRVbLVQUagLg_kr1cERsgj-9AaxXOaBm3GthGI2A3_/exec";
+  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL || DEFAULT_SCRIPT_URL;
 
   if (!scriptUrl) {
     return res.status(500).json({

@@ -17,7 +17,9 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: 'Số điện thoại không hợp lệ (Ví dụ: 0912 345 678).' });
   }
 
-  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
+  const DEFAULT_SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbzabGjfs7t7WM8c-iqwCtVih2QRVbLVQUagLg_kr1cERsgj-9AaxXOaBm3GthGI2A3_/exec";
+  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL || DEFAULT_SCRIPT_URL;
 
   if (!scriptUrl) {
     return res.status(500).json({
