@@ -18,7 +18,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const DEFAULT_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbzabGjfs7t7WM8c-iqwCtVih2QRVbLVQUagLg_kr1cERsgj-9AaxXOaBm3GthGI2A3_/exec";
+    "https://script.google.com/macros/s/AKfycbx6sPsiISycH5kzMmZqZA7lSOo6Z4EHrR2sn9Z4ybrq12i2_XiZb9PHFAcr9BLgluT9/exec";
   const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL || DEFAULT_SCRIPT_URL;
 
   if (!scriptUrl) {
