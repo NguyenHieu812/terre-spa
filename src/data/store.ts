@@ -218,7 +218,7 @@ export const getStoredProductCategories = (): string[] => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-  } catch (e) {}
+  } catch (e) { }
   return DEFAULT_PRODUCT_CATEGORIES;
 };
 
@@ -228,7 +228,7 @@ export const saveProductCategories = (categories: string[]): void => {
     localStorage.setItem(PRODUCT_CATEGORIES_STORAGE_KEY, JSON.stringify(clean));
     recordLocalMutation();
     triggerFullAutoSync();
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const addProductCategory = (newCat: string): string[] => {
@@ -345,7 +345,7 @@ export const getDeletedPostIds = (): Set<string> => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) return new Set(parsed);
     }
-  } catch (e) {}
+  } catch (e) { }
   return new Set();
 };
 
@@ -354,7 +354,7 @@ export const addDeletedPostId = (id: string): void => {
     const current = getDeletedPostIds();
     current.add(id);
     localStorage.setItem(DELETED_POST_IDS_KEY, JSON.stringify(Array.from(current)));
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const clearDeletedPostId = (id: string): void => {
@@ -363,7 +363,7 @@ export const clearDeletedPostId = (id: string): void => {
     if (current.delete(id)) {
       localStorage.setItem(DELETED_POST_IDS_KEY, JSON.stringify(Array.from(current)));
     }
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const getDeletedProductIds = (): Set<string> => {
@@ -373,7 +373,7 @@ export const getDeletedProductIds = (): Set<string> => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) return new Set(parsed);
     }
-  } catch (e) {}
+  } catch (e) { }
   return new Set();
 };
 
@@ -382,7 +382,7 @@ export const addDeletedProductId = (id: string): void => {
     const current = getDeletedProductIds();
     current.add(id);
     localStorage.setItem(DELETED_PRODUCT_IDS_KEY, JSON.stringify(Array.from(current)));
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const clearDeletedProductId = (id: string): void => {
@@ -391,7 +391,7 @@ export const clearDeletedProductId = (id: string): void => {
     if (current.delete(id)) {
       localStorage.setItem(DELETED_PRODUCT_IDS_KEY, JSON.stringify(Array.from(current)));
     }
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const getDeletedServiceIds = (): Set<string> => {
@@ -401,7 +401,7 @@ export const getDeletedServiceIds = (): Set<string> => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) return new Set(parsed);
     }
-  } catch (e) {}
+  } catch (e) { }
   return new Set();
 };
 
@@ -410,7 +410,7 @@ export const addDeletedServiceId = (id: string): void => {
     const current = getDeletedServiceIds();
     current.add(id);
     localStorage.setItem(DELETED_SERVICE_IDS_KEY, JSON.stringify(Array.from(current)));
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const clearDeletedServiceId = (id: string): void => {
@@ -419,13 +419,13 @@ export const clearDeletedServiceId = (id: string): void => {
     if (current.delete(id)) {
       localStorage.setItem(DELETED_SERVICE_IDS_KEY, JSON.stringify(Array.from(current)));
     }
-  } catch (e) {}
+  } catch (e) { }
 };
 
 const recordLocalMutation = () => {
   try {
     localStorage.setItem(LAST_MUTATION_STORAGE_KEY, Date.now().toString());
-  } catch (e) {}
+  } catch (e) { }
 };
 
 /**
@@ -447,7 +447,7 @@ export function safeSetLocalStorage(key: string, data: any): boolean {
         "debug",
       ];
       keysToClean.forEach((k) => localStorage.removeItem(k));
-    } catch (cleanErr) {}
+    } catch (cleanErr) { }
 
     // Fallback: try saving trimmed secondary data if still quota exceeded
     try {
@@ -697,7 +697,7 @@ export const getDeletedOrderIds = (): Set<string> => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) return new Set(parsed);
     }
-  } catch (e) {}
+  } catch (e) { }
   return new Set();
 };
 
@@ -706,7 +706,7 @@ export const addDeletedOrderId = (id: string): void => {
     const current = getDeletedOrderIds();
     current.add(id);
     localStorage.setItem(DELETED_ORDER_IDS_KEY, JSON.stringify(Array.from(current)));
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const clearDeletedOrderId = (id: string): void => {
@@ -715,7 +715,7 @@ export const clearDeletedOrderId = (id: string): void => {
     if (current.delete(id)) {
       localStorage.setItem(DELETED_ORDER_IDS_KEY, JSON.stringify(Array.from(current)));
     }
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const INITIAL_COUPONS: Coupon[] = [
@@ -1095,7 +1095,7 @@ export async function checkAndAutoSync(payload?: {
       if (res.success && res.timestamp) {
         try {
           localStorage.setItem(LAST_MUTATION_STORAGE_KEY, new Date(res.timestamp).getTime().toString());
-        } catch (e) {}
+        } catch (e) { }
       }
     } catch (e: any) {
       config.syncStatus = "error";
@@ -1143,13 +1143,13 @@ export const syncWithCloudflareSilently = async (): Promise<boolean> => {
       const filteredProducts = Array.isArray(products) ? products.filter((p) => !deletedProductIds.has(p.id)) : [];
       const filteredServices = Array.isArray(serviceCategories)
         ? serviceCategories
-            .filter((c) => !deletedServiceIds.has(c.id))
-            .map((c) => ({
-              ...c,
-              services: Array.isArray(c.services)
-                ? c.services.filter((s: any) => !deletedServiceIds.has(s.id))
-                : [],
-            }))
+          .filter((c) => !deletedServiceIds.has(c.id))
+          .map((c) => ({
+            ...c,
+            services: Array.isArray(c.services)
+              ? c.services.filter((s: any) => !deletedServiceIds.has(s.id))
+              : [],
+          }))
         : [];
       const filteredReviews = Array.isArray(reviews) ? reviews : [];
       const filteredOrders = Array.isArray(orders) ? orders.filter((o) => !deletedOrderIds.has(o.id)) : [];
